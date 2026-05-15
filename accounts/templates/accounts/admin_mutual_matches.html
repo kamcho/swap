@@ -1,0 +1,175 @@
+{% extends 'core/base.html' %}
+
+{% block title %}All Mutual Matches - Staff{% endblock %}
+
+{% block content %}
+<div class="admin-matches container">
+    <header class="admin-header">
+        <h1 style="font-size: 3rem; font-weight: 800; margin-bottom: 0.5rem;">Global Mutual Matches</h1>
+        <p style="color: var(--text-muted); font-size: 1.1rem; margin-bottom: 2rem;">Overview of all 2-way swap opportunities currently on the platform.</p>
+        <a href="{% url 'accounts:staff_dashboard' %}" class="btn-secondary" style="padding: 0.75rem 1.5rem; text-decoration: none; display: inline-flex; align-items: center; gap: 0.5rem;">
+            <i class="fas fa-arrow-left"></i> Back to Dashboard
+        </a>
+    </header>
+
+    <div class="matches-grid">
+        {% for t1, t2 in matches %}
+            <div class="match-pair-wrapper">
+                <div class="mutual-badge">MUTUAL SWAP</div>
+                <div class="match-pair-card">
+                    <!-- Teacher 1 -->
+                    <div class="teacher-column">
+                        <div class="teacher-avatar">{{ t1.user.first_name|first }}</div>
+                        <div class="teacher-details">
+                            <h4>{{ t1.user.first_name }} {{ t1.user.last_name }}</h4>
+                            <span class="station">{{ t1.school_name }}</span>
+                            <span class="county-tag">{{ t1.county.name }}</span>
+                        </div>
+                        <a href="{% url 'accounts:teacher_profile' t1.id %}" class="profile-btn">View Profile</a>
+                    </div>
+
+                    <!-- Match Indicator -->
+                    <div class="match-center">
+                        <div class="match-line"></div>
+                        <div class="match-icon-box">
+                            <i class="fas fa-handshake"></i>
+                        </div>
+                    </div>
+
+                    <!-- Teacher 2 -->
+                    <div class="teacher-column">
+                        <div class="teacher-avatar">{{ t2.user.first_name|first }}</div>
+                        <div class="teacher-details">
+                            <h4>{{ t2.user.first_name }} {{ t2.user.last_name }}</h4>
+                            <span class="station">{{ t2.school_name }}</span>
+                            <span class="county-tag">{{ t2.county.name }}</span>
+                        </div>
+                        <a href="{% url 'accounts:teacher_profile' t2.id %}" class="profile-btn">View Profile</a>
+                    </div>
+                </div>
+            </div>
+        {% empty %}
+            <div style="grid-column: 1/-1; text-align: center; padding: 5rem 0;">
+                <div style="font-size: 3rem; color: #e2e8f0; margin-bottom: 1.5rem;"><i class="fas fa-heart-crack"></i></div>
+                <p style="color: var(--text-muted); font-size: 1.1rem;">No mutual matches found across the platform yet.</p>
+            </div>
+        {% endfor %}
+    </div>
+</div>
+
+<style>
+    .admin-matches { padding: 5rem 2rem; max-width: 1200px; }
+    .admin-header { margin-bottom: 4rem; text-align: center; }
+    
+    .matches-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 3rem;
+    }
+
+    .match-pair-wrapper {
+        position: relative;
+        padding-top: 1rem;
+    }
+
+    .mutual-badge {
+        position: absolute;
+        top: 0;
+        left: 50%;
+        transform: translateX(-50%);
+        background: var(--primary);
+        color: white;
+        font-size: 0.7rem;
+        font-weight: 800;
+        padding: 0.4rem 1rem;
+        border-radius: 50px;
+        z-index: 2;
+        letter-spacing: 1px;
+        box-shadow: 0 4px 12px rgba(197, 31, 61, 0.3);
+    }
+
+    .match-pair-card {
+        background: white;
+        border: 1px solid #e2e8f0;
+        border-radius: 24px;
+        padding: 3rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 2rem;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.03);
+        transition: 0.3s;
+    }
+    .match-pair-card:hover { transform: translateY(-5px); border-color: var(--primary); box-shadow: 0 20px 40px rgba(0,0,0,0.06); }
+
+    .teacher-column {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+    }
+
+    .teacher-avatar {
+        width: 70px;
+        height: 70px;
+        background: #f8fafc;
+        border: 2px solid #e2e8f0;
+        color: var(--primary);
+        border-radius: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        font-weight: 800;
+        margin-bottom: 1.5rem;
+    }
+
+    .teacher-details h4 { font-size: 1.25rem; font-weight: 800; margin-bottom: 0.5rem; color: var(--text-dark); }
+    .station { display: block; font-size: 0.9rem; color: var(--text-muted); margin-bottom: 0.5rem; }
+    .county-tag { display: inline-block; font-size: 0.75rem; font-weight: 700; background: #fff1f2; color: var(--primary); padding: 0.3rem 0.75rem; border-radius: 6px; margin-bottom: 1.5rem; }
+
+    .profile-btn {
+        font-size: 0.85rem;
+        font-weight: 700;
+        color: var(--text-muted);
+        text-decoration: none;
+        padding: 0.6rem 1.2rem;
+        border: 1px solid #e2e8f0;
+        border-radius: 10px;
+        transition: 0.3s;
+    }
+    .profile-btn:hover { background: #f8fafc; color: var(--primary); border-color: var(--primary); }
+
+    .match-center {
+        flex: 0 0 120px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+    }
+    .match-line { width: 100%; height: 2px; background: #e2e8f0; position: absolute; top: 50%; left: 0; }
+    .match-icon-box {
+        width: 48px;
+        height: 48px;
+        background: white;
+        border: 2px solid #e2e8f0;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--primary);
+        font-size: 1.25rem;
+        z-index: 1;
+        transition: 0.3s;
+    }
+    .match-pair-card:hover .match-icon-box { background: var(--primary); color: white; border-color: var(--primary); transform: rotate(15deg); }
+    .match-pair-card:hover .match-line { background: var(--primary); opacity: 0.3; }
+
+    @media (max-width: 800px) {
+        .match-pair-card { flex-direction: column; padding: 2rem; }
+        .match-center { height: 60px; width: 100%; }
+        .match-line { width: 2px; height: 100%; left: 50%; }
+    }
+</style>
+{% endblock %}

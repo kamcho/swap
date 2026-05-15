@@ -1,0 +1,167 @@
+{% extends 'core/base_app.html' %}
+{% load static %}
+
+{% block title %}Dashboard - SwapMate AI{% endblock %}
+
+{% block content %}
+<div class="db-welcome" style="margin-bottom: 2rem;">
+    <h1 style="font-size: 2rem; font-weight: 800;">Welcome Back, {{ user.first_name }}!</h1>
+</div>
+
+<!-- Top Grid -->
+<div class="db-grid">
+    <!-- Hero Card -->
+    <div class="db-card card-hero">
+        <div class="hero-icon-box">
+            <i class="fas fa-school"></i>
+        </div>
+        <h3 style="color: white;">{{ profile.school_name }}</h3>
+        <p>Your current station in {{ profile.county.name }}. We've found several potential swap loops and direct matches for you.</p>
+        <p style="margin-top: 0.5rem; font-size: 0.85rem; opacity: 0.85; display: flex; align-items: center; gap: 0.4rem;">
+            <i class="fas fa-phone-alt" style="font-size: 0.75rem;"></i> {{ user.phone_number }}
+        </p>
+        
+        <div class="hero-stats">
+            <div class="stat-item-box">
+                <strong>{{ potential_matches|length }}</strong>
+                <span>Direct Matches</span>
+            </div>
+            <div class="stat-item-box">
+                <strong>{{ triangle_matches|length }}</strong>
+                <span>Triangle Loops</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Skill Graph / Compatibility Card -->
+    <div class="db-card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+            <h4 style="font-size: 1.1rem; font-weight: 700;">Match Analytics</h4>
+            <div style="background: #f1f5f9; padding: 0.4rem 0.8rem; border-radius: 50px; font-size: 0.75rem; font-weight: 700;">Region: {{ profile.county.name }}</div>
+        </div>
+        <div class="chart-placeholder">
+            <div style="position: relative; width: 180px; height: 180px; border: 1px solid #e2e8f0; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                <div style="width: 140px; height: 140px; border: 1px solid #cbd5e1; border-radius: 50%;"></div>
+                <div style="width: 100px; height: 100px; border: 1px solid #94a3b8; border-radius: 50%;"></div>
+                <!-- Radar Mock -->
+                <div style="position: absolute; width: 100%; height: 100%; clip-path: polygon(50% 0%, 90% 20%, 100% 60%, 40% 90%, 10% 40%); background: rgba(197, 31, 61, 0.2); border: 2px solid var(--primary);"></div>
+            </div>
+        </div>
+        <div style="display: flex; justify-content: center; gap: 1.5rem; margin-top: 1.5rem; font-size: 0.75rem; color: var(--text-muted); font-weight: 600;">
+            <span><i class="fas fa-circle" style="color: var(--primary); font-size: 0.5rem; margin-right: 0.3rem;"></i> Subjects</span>
+            <span><i class="fas fa-circle" style="color: #64748b; font-size: 0.5rem; margin-right: 0.3rem;"></i> Regions</span>
+        </div>
+    </div>
+
+    <!-- Potential Matches List -->
+    <div class="db-card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+            <h4 style="font-size: 1.1rem; font-weight: 700;">New Matches</h4>
+        </div>
+        <div class="member-list">
+            {% if not potential_matches and not triangle_matches %}
+                <p style="font-size: 0.9rem; color: var(--text-muted); margin-top: 2rem; text-align: center;">Searching for new partners...</p>
+            {% else %}
+                <!-- Direct Matches -->
+                {% for match in potential_matches|slice:":3" %}
+                    <div class="member-item">
+                        <div class="member-info">
+                            <div class="match-avatar-xs">{{ match.user.first_name|first }}</div>
+                            <div class="member-name-wrap">
+                                <span class="member-name">{{ match.user.first_name }} {{ match.user.last_name|slice:":1" }}.</span>
+                                <span class="member-sub">{{ match.county.name }} (Direct)</span>
+                            </div>
+                        </div>
+                        <a href="{% url 'messenger:start_chat' match.user.id %}" class="member-score" style="text-decoration: none; color: white; background: var(--primary);"><i class="fas fa-comment"></i></a>
+                    </div>
+                {% endfor %}
+
+                <!-- Triangle Matches -->
+                {% for tri in triangle_matches|slice:":2" %}
+                    <div class="member-item">
+                        <div class="member-info">
+                            <div class="match-avatar-xs" style="background: #a855f7;">{{ tri.partner_1.user.first_name|first }}</div>
+                            <div class="member-name-wrap">
+                                <span class="member-name">{{ tri.partner_1.user.first_name }} → {{ tri.partner_2.user.first_name }}</span>
+                                <span class="member-sub">Triangle Loop</span>
+                            </div>
+                        </div>
+                        <a href="{% url 'accounts:find_swaps' %}" class="member-score" style="text-decoration: none; color: white; background: #a855f7;"><i class="fas fa-sync-alt"></i></a>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        </div>
+        <a href="{% url 'accounts:find_swaps' %}" style="display: block; text-align: center; margin-top: 2rem; font-size: 0.85rem; font-weight: 700; color: var(--primary); text-decoration: none;">View All Partners</a>
+    </div>
+</div>
+
+<!-- Bottom Grid -->
+<div class="db-grid-bottom">
+    <!-- Profile Progress -->
+    <div class="db-card">
+        <h4 style="font-size: 1.1rem; font-weight: 700; margin-bottom: 1.5rem;">Profile Completion</h4>
+        {% with stats=profile.get_completion_stats %}
+        <div style="margin-top: 2rem;">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 1rem; font-size: 0.9rem; font-weight: 700;">
+                <span>Total Progress</span>
+                <span style="color: var(--primary);">{{ stats.percentage }}%</span>
+            </div>
+            <div class="progress-bar" style="height: 12px; background: #f1f5f9;">
+                <div class="progress-fill" style="width: {{ stats.percentage }}%; height: 100%;"></div>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 2rem;">
+                <div style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.8rem; color: {% if stats.steps.personal %}var(--primary){% else %}var(--text-muted){% endif %}; font-weight: 600;">
+                    <i class="fas fa-check-circle"></i> Personal
+                </div>
+                <div style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.8rem; color: {% if stats.steps.academic %}var(--primary){% else %}var(--text-muted){% endif %}; font-weight: 600;">
+                    <i class="fas fa-check-circle"></i> Academic
+                </div>
+                <div style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.8rem; color: {% if stats.steps.location %}var(--primary){% else %}var(--text-muted){% endif %}; font-weight: 600;">
+                    <i class="fas fa-check-circle"></i> Location
+                </div>
+                <div style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.8rem; color: {% if stats.steps.swap %}var(--primary){% else %}var(--text-muted){% endif %}; font-weight: 600;">
+                    <i class="fas fa-check-circle"></i> Swap Info
+                </div>
+            </div>
+            <div style="display: flex; gap: 1rem; margin-top: 2rem;">
+                <a href="{% url 'accounts:step_swap' %}" class="btn-match-outline" style="flex: 1; padding: 0.8rem; font-size: 0.85rem; text-align: center;">Edit Preferences</a>
+                {% if not stats.is_complete %}
+                    <a href="{% url stats.next_step_url %}" class="btn-match-primary" style="flex: 1; padding: 0.8rem; font-size: 0.85rem; text-align: center;">Complete Now</a>
+                {% endif %}
+            </div>
+        </div>
+        {% endwith %}
+    </div>
+
+    <!-- Subject Demand -->
+    <div class="db-card">
+        <h4 style="font-size: 1.1rem; font-weight: 700; margin-bottom: 1.5rem;">Swap Trends</h4>
+        <div style="display: flex; flex-direction: column; gap: 1.5rem; margin-top: 1rem;">
+            <div style="padding: 1.25rem; background: #fff5f6; border-radius: 16px; border: 1px solid rgba(197, 31, 61, 0.1);">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                    <strong style="font-size: 0.95rem; color: var(--primary);">High Demand</strong>
+                    <span style="font-size: 0.7rem; font-weight: 800; background: var(--primary); color: white; padding: 0.2rem 0.5rem; border-radius: 4px;">TOP</span>
+                </div>
+                <p style="font-size: 0.85rem; color: var(--text-dark); font-weight: 600;">Mathematics & Physics</p>
+                <span style="font-size: 0.75rem; color: var(--text-muted);">Trending in Nairobi, Kiambu, Nakuru</span>
+            </div>
+
+            <div style="padding: 1.25rem; background: #f8fafc; border-radius: 16px; border: 1px solid var(--border);">
+                <strong style="display: block; font-size: 0.95rem; margin-bottom: 0.5rem;">Successful Swaps</strong>
+                <p style="font-size: 0.85rem; color: var(--text-dark); font-weight: 600;">240 this month</p>
+                <span style="font-size: 0.75rem; color: var(--text-muted);">Growing by 12% vs last month</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tips Card -->
+    <div class="db-card learning-card">
+        <div class="learning-img"></div>
+        <div class="learning-content">
+            <h4>Safety & Security Tips</h4>
+            <p>Ensure you verify the TSC employment status of your swap partner before making travel arrangements.</p>
+            <a href="#" class="btn-read-more">Read full guide <i class="fas fa-arrow-right"></i></a>
+        </div>
+    </div>
+</div>
+{% endblock %}

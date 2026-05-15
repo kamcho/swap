@@ -1,0 +1,33 @@
+# Django Standard
+*.log
+*.pot
+*.pyc
+__pycache__/
+local_settings.py
+# db.sqlite3
+db.sqlite3-journal
+media/
+
+# Environment
+.env
+.venv/
+venv/
+ENV/
+env.bak
+env/
+
+# Migrations (Explicitly requested to ignore)
+**/migrations/*
+
+# Static files
+# static/ (Uncomment if you want to ignore collected static files)
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS related
+.DS_Store
+Thumbs.db

@@ -1,0 +1,122 @@
+{% extends 'core/base_app.html' %}
+
+{% block title %}Staff Analytics - SwapMate AI{% endblock %}
+
+{% block content %}
+<div class="db-welcome" style="margin-bottom: 2rem;">
+    <h1 style="font-size: 2rem; font-weight: 800;">Staff Analytics Dashboard</h1>
+    <p style="color: var(--text-muted);">Comprehensive overview of platform performance and swap activity.</p>
+</div>
+
+<!-- Stats Overview -->
+<div class="db-grid" style="grid-template-columns: repeat(3, 1fr); margin-bottom: 3rem;">
+    <div class="db-card">
+        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 1.5rem;">
+            <div>
+                <span style="font-size: 0.8rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Registered Teachers</span>
+                <h2 style="font-size: 2.5rem; font-weight: 800; margin-top: 0.5rem;">{{ total_users }}</h2>
+            </div>
+            <div style="width: 48px; height: 48px; background: #eff6ff; color: #3b82f6; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.25rem;">
+                <i class="fas fa-users"></i>
+            </div>
+        </div>
+        <div style="display: flex; gap: 1rem; font-size: 0.75rem; font-weight: 700; color: var(--text-muted);">
+            <span><i class="fas fa-circle" style="color: #3b82f6; font-size: 0.5rem; margin-right: 0.3rem;"></i> P: {{ level_stats.PRIMARY }}</span>
+            <span><i class="fas fa-circle" style="color: #10b981; font-size: 0.5rem; margin-right: 0.3rem;"></i> J: {{ level_stats.JSS }}</span>
+            <span><i class="fas fa-circle" style="color: #f59e0b; font-size: 0.5rem; margin-right: 0.3rem;"></i> S: {{ level_stats.SENIOR }}</span>
+        </div>
+    </div>
+
+    <a href="{% url 'accounts:admin_mutual_matches' %}" class="db-card" style="text-decoration: none; color: inherit; transition: 0.3s; border-left: 4px solid var(--primary);">
+        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 1.5rem;">
+            <div>
+                <span style="font-size: 0.8rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Mutual Matches</span>
+                <h2 style="font-size: 2.5rem; font-weight: 800; margin-top: 0.5rem;">{{ mutual_matches_count }}</h2>
+            </div>
+            <div style="width: 48px; height: 48px; background: #fff1f2; color: var(--primary); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.25rem;">
+                <i class="fas fa-handshake"></i>
+            </div>
+        </div>
+        <p style="font-size: 0.85rem; color: var(--text-muted); font-weight: 600;">View all direct swap pairs &raquo;</p>
+    </a>
+
+    <a href="{% url 'accounts:admin_triangle_matches' %}" class="db-card" style="text-decoration: none; color: inherit; transition: 0.3s; border-left: 4px solid #a855f7;">
+        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 1.5rem;">
+            <div>
+                <span style="font-size: 0.8rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Triangle Loops</span>
+                <h2 style="font-size: 2.5rem; font-weight: 800; margin-top: 0.5rem;">{{ triangle_matches_count }}</h2>
+            </div>
+            <div style="width: 48px; height: 48px; background: #f5f3ff; color: #a855f7; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.25rem;">
+                <i class="fas fa-arrows-spin"></i>
+            </div>
+        </div>
+        <p style="font-size: 0.85rem; color: var(--text-muted); font-weight: 600;">View all 3-way cycles &raquo;</p>
+    </a>
+</div>
+
+<!-- Registry Section -->
+<div class="db-card">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2.5rem;">
+        <h3 style="font-size: 1.25rem; font-weight: 800;">Teachers Registry</h3>
+        
+        <form method="get" style="display: flex; gap: 1rem;">
+            <input type="text" name="q" value="{{ q }}" placeholder="Search name or phone..." style="padding: 0.6rem 1rem; border-radius: 8px; border: 1px solid var(--border); font-size: 0.9rem; width: 250px;">
+            <select name="level" style="padding: 0.6rem 1rem; border-radius: 8px; border: 1px solid var(--border); font-size: 0.9rem;">
+                <option value="">All Levels</option>
+                <option value="PRIMARY" {% if selected_level == 'PRIMARY' %}selected{% endif %}>Primary</option>
+                <option value="JSS" {% if selected_level == 'JSS' %}selected{% endif %}>JSS</option>
+                <option value="SENIOR" {% if selected_level == 'SENIOR' %}selected{% endif %}>Senior</option>
+            </select>
+            <button type="submit" class="btn-match-primary" style="padding: 0.6rem 1.5rem; border-radius: 8px;">Filter</button>
+        </form>
+    </div>
+
+    <div style="overflow-x: auto;">
+        <table style="width: 100%; border-collapse: collapse; text-align: left;">
+            <thead>
+                <tr style="border-bottom: 2px solid #f1f5f9;">
+                    <th style="padding: 1rem; font-size: 0.75rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase;">Teacher</th>
+                    <th style="padding: 1rem; font-size: 0.75rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase;">Level</th>
+                    <th style="padding: 1rem; font-size: 0.75rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase;">Current Station</th>
+                    <th style="padding: 1rem; font-size: 0.75rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase;">Preferred Counties</th>
+                    <th style="padding: 1rem; font-size: 0.75rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase;">Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for t in teachers %}
+                <tr style="border-bottom: 1px solid #f1f5f9; transition: 0.2s;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='transparent'">
+                    <td style="padding: 1.25rem 1rem;">
+                        <div style="display: flex; align-items: center; gap: 1rem;">
+                            <div style="width: 36px; height: 36px; background: #f1f5f9; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.85rem; font-weight: 700; color: var(--primary);">
+                                {{ t.user.first_name|first }}
+                            </div>
+                            <div>
+                                <div style="font-weight: 700; color: var(--text-dark);">{{ t.user.first_name }} {{ t.user.last_name }}</div>
+                                <div style="font-size: 0.8rem; color: var(--text-muted);">{{ t.user.phone_number }}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td style="padding: 1rem;">
+                        <span style="font-size: 0.75rem; font-weight: 700; background: #f1f5f9; padding: 0.3rem 0.75rem; border-radius: 50px;">{{ t.get_level_display }}</span>
+                    </td>
+                    <td style="padding: 1rem;">
+                        <div style="font-weight: 600;">{{ t.county.name }}</div>
+                        <div style="font-size: 0.8rem; color: var(--text-muted);">{{ t.school_name }}</div>
+                    </td>
+                    <td style="padding: 1rem;">
+                        <div style="display: flex; flex-wrap: wrap; gap: 0.4rem;">
+                            {% for pref in t.preferred_locations.all %}
+                                <span style="font-size: 0.75rem; font-weight: 600; color: var(--primary);">{{ pref.county.name }}{% if not forloop.last %},{% endif %}</span>
+                            {% endfor %}
+                        </div>
+                    </td>
+                    <td style="padding: 1rem;">
+                        <a href="{% url 'accounts:teacher_profile' t.id %}" style="font-size: 0.85rem; font-weight: 700; color: var(--primary); text-decoration: none;">View Profile &rarr;</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

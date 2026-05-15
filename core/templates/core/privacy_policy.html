@@ -1,0 +1,96 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Privacy Policy - SwapMate AI{% endblock %}
+
+{% block content %}
+<div class="privacy-container container">
+    <div class="policy-card">
+        <h1>Privacy Policy</h1>
+        <p class="last-updated">Last updated: May 15, 2026</p>
+
+        <section>
+            <h2>1. Introduction</h2>
+            <p>Welcome to SwapMate AI. We respect your privacy and are committed to protecting your personal data. This privacy policy will inform you as to how we look after your personal data when you visit our website and tell you about your privacy rights and how the law protects you.</p>
+        </section>
+
+        <section>
+            <h2>2. Data We Collect</h2>
+            <p>We may collect, use, store and transfer different kinds of personal data about you which we have grouped together as follows:</p>
+            <ul>
+                <li><strong>Identity Data:</strong> Includes first name, last name, and TSC number. When using <strong>Google Sign-In</strong>, we receive your email address, name, and profile picture from Google.</li>
+                <li><strong>Contact Data:</strong> Includes email address and phone number used for WhatsApp communication.</li>
+                <li><strong>Professional Data:</strong> Includes your current school, subjects, and county.</li>
+                <li><strong>Preference Data:</strong> Includes your desired swap locations and interests.</li>
+            </ul>
+        </section>
+
+        <section>
+            <h2>3. Third-Party Integrations & Compliance</h2>
+            <h3>A. Google Sign-In</h3>
+            <p>Our platform uses Google OAuth 2.0 for secure authentication. By using this service, you authorize SwapMate to access your basic Google profile information. This data is strictly used to create your account and verify your identity. You can manage or revoke this access at any time via your <a href="https://myaccount.google.com/permissions" target="_blank">Google Security Settings</a>.</p>
+            
+            <h3>B. WhatsApp API (Meta Platforms)</h3>
+            <p>We utilize the official Meta WhatsApp Business API to facilitate real-time communication. Your phone number and message history are processed through Meta’s secure infrastructure to enable bot interactions and admin support. We adhere to the <a href="https://www.whatsapp.com/legal/business-policy/" target="_blank">WhatsApp Business Policy</a> and ensure your data is never sold to third-party advertisers.</p>
+        </section>
+
+        <section>
+            <h2>4. How We Use Your Data</h2>
+            <p>We will only use your personal data when the law allows us to. Most commonly, we will use your personal data in the following circumstances:</p>
+            <ul>
+                <li>To register you as a new user.</li>
+                <li>To match you with potential swap partners based on your preferences.</li>
+                <li>To facilitate communication between you and potential matches.</li>
+                <li>To notify you about changes to our service.</li>
+            </ul>
+        </section>
+
+        <section>
+            <h2>4. Data Security</h2>
+            <p>We have put in place appropriate security measures to prevent your personal data from being accidentally lost, used or accessed in an unauthorized way, altered or disclosed. In addition, we limit access to your personal data to those employees, agents, contractors and other third parties who have a business need to know.</p>
+        </section>
+
+        <section>
+            <h2>5. Communication Security</h2>
+            <p>To ensure the safety of our users, we monitor communications on our platform for potential scams. Sharing of personal phone numbers outside of our verified meeting process is prohibited to protect you from unauthorized contact.</p>
+        </section>
+
+        <section>
+            <h2>6. Your Legal Rights</h2>
+            <p>Under certain circumstances, you have rights under data protection laws in relation to your personal data, including the right to request access, correction, erasure, restriction, transfer, to object to processing, and to withdraw consent.</p>
+        </section>
+
+        <section>
+            <h2>7. Contact Us</h2>
+            <p>If you have any questions about this privacy policy or our privacy practices, please contact us at support@swapmate.ai.</p>
+        </section>
+    </div>
+</div>
+
+<style>
+    .privacy-container { padding: 6rem 2rem; max-width: 900px; margin: 0 auto; }
+    
+    .policy-card { 
+        background: white; 
+        border-radius: 24px; 
+        padding: 4rem; 
+        box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+        border: 1px solid var(--border);
+    }
+    
+    .policy-card h1 { font-size: 3rem; font-weight: 800; color: var(--text-dark); margin-bottom: 0.5rem; }
+    .last-updated { color: var(--text-muted); font-size: 0.9rem; margin-bottom: 3rem; }
+    
+    section { margin-bottom: 2.5rem; }
+    section h2 { font-size: 1.5rem; font-weight: 700; color: var(--primary); margin-bottom: 1.25rem; }
+    section p { font-size: 1.05rem; color: var(--text-muted); line-height: 1.8; }
+    
+    ul { padding-left: 1.5rem; margin-top: 1rem; }
+    li { color: var(--text-muted); margin-bottom: 0.75rem; font-size: 1.05rem; line-height: 1.6; }
+    li strong { color: var(--text-dark); }
+
+    @media (max-width: 768px) {
+        .policy-card { padding: 2.5rem; }
+        .policy-card h1 { font-size: 2.25rem; }
+    }
+</style>
+{% endblock %}

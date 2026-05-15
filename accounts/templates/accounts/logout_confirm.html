@@ -1,0 +1,54 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Logout - SwapMate{% endblock %}
+
+{% block content %}
+<section class="auth-section">
+    <div class="container">
+        <div class="auth-card">
+            <h2>Logout</h2>
+            <p>Are you sure you want to log out?</p>
+            
+            <form method="post" class="auth-form">
+                {% csrf_token %}
+                <button type="submit" class="btn-primary full-width">Confirm Logout</button>
+                <a href="/" class="btn-outline full-width" style="display: block; margin-top: 1rem; text-align: center;">Cancel</a>
+            </form>
+        </div>
+    </div>
+</section>
+
+<style>
+    .auth-section {
+        padding: 6rem 0;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 80vh;
+    }
+    .auth-card {
+        background: var(--glass);
+        border: 1px solid var(--glass-border);
+        padding: 3rem;
+        border-radius: 24px;
+        max-width: 400px;
+        width: 100%;
+        margin: 0 auto;
+        backdrop-filter: blur(10px);
+        text-align: center;
+    }
+    .auth-card h2 {
+        font-size: 2rem;
+        margin-bottom: 0.5rem;
+    }
+    .auth-card p {
+        color: var(--text-muted);
+        margin-bottom: 2rem;
+    }
+    .full-width {
+        width: 100%;
+        border: none;
+        cursor: pointer;
+    }
+</style>
+{% endblock %}

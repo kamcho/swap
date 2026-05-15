@@ -1,0 +1,220 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block content %}
+<section class="hero">
+    <div class="container">
+        <div class="hero-content">
+            <div class="hero-subtitle">
+                <span class="dot"></span>
+                CONNECTING TSC TEACHERS
+            </div>
+            <h1>We are <span>SwapMate AI</span></h1>
+            <p>The ultimate platform for TSC teachers to find transfer partners. We simplify the matching process using intelligent algorithms—finding your way home with clarity and ease.</p>
+            
+            <div class="service-tags">
+                <div class="tag">
+                    <i class="fas fa-arrows-rotate"></i>
+                    Mutual Matches
+                </div>
+                <div class="tag">
+                    <i class="fas fa-diagram-project"></i>
+                    Triangle Swaps
+                </div>
+                <div class="tag">
+                    <i class="fas fa-user-check"></i>
+                    Verified Teachers
+                </div>
+            </div>
+
+            <div class="hero-btns">
+                <a href="{% url 'accounts:find_swaps' %}" class="btn-cta">Find a Match</a>
+                <a href="{% url 'accounts:signup' %}" class="btn-secondary">Join the Platform</a>
+            </div>
+
+            <div class="hero-footer">
+                SwapMate AI — matching, messaging, and intelligence in one partner.
+            </div>
+        </div>
+        <div class="hero-image">
+            <div class="image-circle">
+                <img src="{% static 'core/images/hero_team.png' %}" alt="Crimsons Analytics Team">
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Services Section -->
+<section class="section-padding">
+    <div class="container">
+        <div class="section-header">
+            <span class="section-subtitle">WHAT WE OFFER</span>
+            <h2 class="section-title">Our services</h2>
+            <p class="section-desc">From partner discovery to match validation, we help you find the right transfer partner using advanced matching logic and direct teacher-to-teacher communication.</p>
+        </div>
+        
+        <div class="services-grid">
+            <div class="service-card">
+                <div class="service-icon-box">
+                    <i class="fas fa-users-viewfinder"></i>
+                </div>
+                <h3>Mutual Matching</h3>
+                <p>Find teachers looking to swap with your exact location and subjects. Our system identifies perfect direct matches instantly so you can start talking.</p>
+                <a href="{% url 'accounts:find_swaps' %}" class="view-details">Explore matches &rarr;</a>
+            </div>
+            
+            <div class="service-card">
+                <div class="service-icon-box">
+                    <i class="fas fa-diagram-project"></i>
+                </div>
+                <h3>Triangle Swaps</h3>
+                <p>Can't find a direct match? Our AI-powered engine searches for three-way swap combinations, increasing your chances of finding a route to your preferred station.</p>
+                <a href="{% url 'accounts:find_swaps' %}" class="view-details">Learn more &rarr;</a>
+            </div>
+            
+            <div class="service-card">
+                <div class="service-icon-box">
+                    <i class="fas fa-robot"></i>
+                </div>
+                <h3>AI Assistant</h3>
+                <p>Chat with our intelligent assistant to get help with your profile, find matching trends, or understand the TSC transfer process better.</p>
+                <a href="#" class="view-details" id="chat-toggle-cta">Chat with AI &rarr;</a>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- How It Works Section -->
+<section class="section-padding how-it-works-section" style="background: #fff; border-top: 1px solid var(--border);">
+    <div class="container">
+        <div class="section-header" style="text-align: center; display: flex; flex-direction: column; align-items: center;">
+            <span class="section-subtitle">STEP BY STEP</span>
+            <h2 class="section-title">How it works</h2>
+            <p class="section-desc">Finding your next teaching station has never been easier. Follow our simple process to secure your swap.</p>
+        </div>
+
+        <div class="process-grid">
+            <div class="process-card">
+                <div class="process-number">01</div>
+                <div class="process-icon">
+                    <i class="fas fa-user-edit"></i>
+                </div>
+                <h3>Complete Profile</h3>
+                <p>Fill in your current station, teaching subjects, and your preferred swap locations to get started.</p>
+            </div>
+
+            <div class="process-card">
+                <div class="process-number">02</div>
+                <div class="process-icon">
+                    <i class="fas fa-search-location"></i>
+                </div>
+                <h3>Find Swap Mate</h3>
+                <p>Our intelligent matching engine connects you with mutual partners or identifies triangle swap opportunities.</p>
+            </div>
+
+            <div class="process-card">
+                <div class="process-number">03</div>
+                <div class="process-icon">
+                    <i class="fas fa-video"></i>
+                </div>
+                <h3>Virtual Meeting</h3>
+                <p>Invite potential partners to a virtual meeting to verify credentials, introduce yourselves, and discuss the move.</p>
+            </div>
+
+            <div class="process-card">
+                <div class="process-number">04</div>
+                <div class="process-icon">
+                    <i class="fas fa-file-signature"></i>
+                </div>
+                <h3>Official Application</h3>
+                <p>Once you've found the perfect match, both parties apply for the official transfer on the TSC portal.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Platform Stats Section -->
+<section style="padding: 4rem 0; background: white; border-top: 1px solid var(--border);">
+    <div class="container">
+        <div class="section-header">
+            <span class="section-subtitle">PLATFORM STATS</span>
+            <h2 class="section-title">Growing community</h2>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 2rem;">
+            <div style="text-align: center; padding: 2rem; background: #f9fafb; border-radius: 20px;">
+                <div style="font-size: 2.5rem; font-weight: 800; color: var(--primary); margin-bottom: 0.5rem;">5,000+</div>
+                <div style="color: var(--text-muted); font-weight: 600;">Registered Teachers</div>
+            </div>
+            <div style="text-align: center; padding: 2rem; background: #f9fafb; border-radius: 20px;">
+                <div style="font-size: 2.5rem; font-weight: 800; color: var(--primary); margin-bottom: 0.5rem;">1,200+</div>
+                <div style="color: var(--text-muted); font-weight: 600;">Successful Swaps</div>
+            </div>
+            <div style="text-align: center; padding: 2rem; background: #f9fafb; border-radius: 20px;">
+                <div style="font-size: 2.5rem; font-weight: 800; color: var(--primary); margin-bottom: 0.5rem;">47</div>
+                <div style="color: var(--text-muted); font-weight: 600;">Counties Covered</div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Testimonials Section -->
+<section class="testimonials-section">
+    <div class="container">
+        <div class="section-header" style="text-align: center; display: flex; flex-direction: column; align-items: center;">
+            <span class="section-subtitle">TEACHER VOICES</span>
+            <h2 class="section-title">What our partners say</h2>
+            <p class="section-desc">Teachers rely on us for transparency, clarity, and support throughout their transfer journey—here is how they describe the experience.</p>
+        </div>
+        
+        <div class="testimonials-grid">
+            <div class="testimonial-card">
+                <div class="stars">
+                    <i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i>
+                </div>
+                <p class="testimonial-text">SwapMate turned a stressful search into a successful transfer. I found a partner in less than a week, and the communication was seamless.</p>
+                <div class="testimonial-author">
+                    <span class="author-name">Amara Osei</span>
+                    <span class="author-title">Secondary School Teacher, Kiambu</span>
+                </div>
+            </div>
+            
+            <div class="testimonial-card">
+                <div class="stars">
+                    <i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i>
+                </div>
+                <p class="testimonial-text">Triangle swaps are a game changer. I couldn't find a direct match to Nairobi, but the system found a three-way link that worked for all of us.</p>
+                <div class="testimonial-author">
+                    <span class="author-name">James Mwangi</span>
+                    <span class="author-title">Primary School Head, Nakuru</span>
+                </div>
+            </div>
+            
+            <div class="testimonial-card">
+                <div class="stars">
+                    <i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i>
+                </div>
+                <p class="testimonial-text">The AI assistant helped me optimize my profile. Within days, I was getting inquiries from teachers in my preferred counties.</p>
+                <div class="testimonial-author">
+                    <span class="author-name">Elena Vasquez</span>
+                    <span class="author-title">Special Education Teacher, Mombasa</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Floating Widgets -->
+<div class="whatsapp-widget">
+    <i class="fab fa-whatsapp" style="font-size: 2rem;"></i>
+</div>
+
+<div class="chat-widget" id="chat-toggle-new">
+    <i class="fas fa-comment-alt" style="font-size: 1.5rem;"></i>
+</div>
+<script>
+    document.getElementById('chat-toggle-cta')?.addEventListener('click', (e) => {
+        e.preventDefault();
+        document.getElementById('chat-toggle-new')?.click();
+    });
+</script>
+{% endblock %}

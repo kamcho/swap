@@ -1,0 +1,291 @@
+{% extends 'core/base_app.html' %}
+
+{% block title %}Find Swaps - SwapMate AI{% endblock %}
+
+{% block content %}
+<div class="db-welcome" style="margin-bottom: 2rem; display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 1.5rem;">
+    <div>
+        <h1 style="font-size: 2rem; font-weight: 800;">Discover Swap Opportunities</h1>
+        <p style="color: var(--text-muted);">Browse through categorized matches found for your profile.</p>
+    </div>
+    
+    <form method="get" id="search-form" style="display: flex; gap: 0.75rem; background: white; padding: 0.5rem; border-radius: 12px; border: 1px solid var(--border); box-shadow: var(--shadow-sm); align-items: center;">
+        <div style="font-size: 0.85rem; font-weight: 700; color: var(--text-muted); padding-left: 0.5rem; margin-right: 0.5rem;">Filter by Counties:<br><small style="font-weight: 400; font-size: 0.7rem;">(Select multiple)</small></div>
+        
+        <div class="hybrid-select-container" id="county-hybrid-select">
+            <div class="hybrid-select-input-wrap" onclick="document.getElementById('hybrid-search-input').focus()">
+                <div class="selected-tags" id="selected-tags">
+                    <!-- Tags will appear here -->
+                </div>
+                <input type="text" id="hybrid-search-input" placeholder="Search counties..." autocomplete="off">
+                <i class="fas fa-chevron-down" style="color: var(--text-muted); font-size: 0.8rem; margin-left: auto;"></i>
+            </div>
+            <div class="hybrid-dropdown" id="hybrid-dropdown">
+                <!-- Options will appear here -->
+            </div>
+            <!-- Hidden real select for form submission -->
+            <select name="county" id="real-county-select" multiple style="display: none;">
+                {% for county in counties %}
+                    <option value="{{ county.id }}" {% if county.id in selected_counties %}selected{% endif %}>{{ county.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <button type="submit" class="btn-match-primary" style="padding: 0.6rem 1.25rem; border-radius: 8px; font-size: 0.85rem; height: 45px;">Apply Filters</button>
+        {% if selected_counties %}
+            <a href="{% url 'accounts:find_swaps' %}" style="display: flex; align-items: center; justify-content: center; width: 45px; height: 45px; background: #f1f5f9; color: var(--text-muted); border-radius: 8px; text-decoration: none;" title="Clear Filters"><i class="fas fa-times"></i></a>
+        {% endif %}
+    </form>
+</div>
+
+{% if is_searching_custom %}
+<div class="db-card" style="margin-bottom: 2rem; background: #f0f9ff; border: 1px solid #bae6fd; display: flex; align-items: center; justify-content: space-between; padding: 1rem 1.5rem;">
+    <div style="display: flex; align-items: center; gap: 1rem;">
+        <div style="width: 32px; height: 32px; background: #e0f2fe; color: #0369a1; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+            <i class="fas fa-info-circle"></i>
+        </div>
+        <p style="font-size: 0.9rem; color: #0369a1; font-weight: 600;">You are currently searching custom locations. Would you like to switch to your preferred locations?</p>
+    </div>
+    <form method="get">
+        {% for pid in user_pref_ids %}
+            <input type="hidden" name="county" value="{{ pid }}">
+        {% endfor %}
+        <button type="submit" style="background: #0369a1; color: white; border: none; padding: 0.5rem 1rem; border-radius: 8px; font-size: 0.85rem; font-weight: 700; cursor: pointer; transition: 0.2s;" onmouseover="this.style.background='#075985'" onmouseout="this.style.background='#0369a1'">
+            Use My Preferences
+        </button>
+    </form>
+</div>
+{% endif %}
+
+<!-- Tab Navigation -->
+<div class="app-tabs">
+    <button class="app-tab-btn active" onclick="openTab(event, 'mutual')">Perfect Matches ({{ mutual|length }})</button>
+    <button class="app-tab-btn" onclick="openTab(event, 'triangles')">Triangle Loops ({{ triangles|length }})</button>
+    <button class="app-tab-btn" onclick="openTab(event, 'possible')">Possible Matches ({{ possible|length }})</button>
+</div>
+
+<!-- Tab Content: Mutual -->
+<div id="mutual" class="tab-pane active">
+    <div class="matches-grid">
+        {% for match in mutual %}
+            <div class="match-card">
+                <div class="match-header">
+                    <div class="match-avatar-small">{{ match.user.first_name|first }}</div>
+                    <div class="match-title">
+                        <h4>{{ match.user.first_name }} {{ match.user.last_name }}</h4>
+                        <span>{{ match.school_name }}</span>
+                    </div>
+                    <div style="margin-left: auto; background: #ecfdf5; color: #059669; font-size: 0.7rem; font-weight: 800; padding: 0.3rem 0.6rem; border-radius: 6px;">PERFECT FIT</div>
+                </div>
+                
+                <div class="match-details">
+                    <div class="detail-row">
+                        <label>Location</label>
+                        <span>{{ match.county.name }}</span>
+                    </div>
+                    <div class="detail-row">
+                        <label>Subjects</label>
+                        <span>
+                            {% for sub in match.teaching_subjects.all %}
+                                {{ sub.subject.name }}{% if not forloop.last %}, {% endif %}
+                            {% endfor %}
+                        </span>
+                    </div>
+                </div>
+                
+                <div class="match-actions">
+                    <a href="tel:{{ match.user.phone_number }}" class="btn-match-primary">Call Now</a>
+                    <a href="{% url 'messenger:start_chat' match.user.id %}" class="btn-match-outline"><i class="fas fa-comment"></i> Message</a>
+                </div>
+            </div>
+        {% empty %}
+            <div class="db-card" style="grid-column: 1/-1; text-align: center; padding: 5rem 0;">
+                <p style="color: var(--text-muted);">No perfect mutual matches found yet.</p>
+            </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Tab Content: Triangles -->
+<div id="triangles" class="tab-pane">
+    <div class="matches-grid">
+        {% for tri in triangles %}
+            <div class="match-card">
+                <div class="triangle-container">
+                    <div class="flow-wrap">
+                        <div class="flow-node">
+                            <span class="node-label">You</span>
+                            <span class="node-name">Current</span>
+                            <span class="node-loc">{{ profile.county.name }}</span>
+                        </div>
+                        <div class="flow-connector"><i class="fas fa-chevron-right"></i></div>
+                        <div class="flow-node">
+                            <span class="node-label">Partner 1</span>
+                            <span class="node-name">{{ tri.partner_1.user.first_name }}</span>
+                            <span class="node-loc">{{ tri.partner_1.county.name }}</span>
+                        </div>
+                        <div class="flow-connector"><i class="fas fa-chevron-right"></i></div>
+                        <div class="flow-node">
+                            <span class="node-label">Partner 2</span>
+                            <span class="node-name">{{ tri.partner_2.user.first_name }}</span>
+                            <span class="node-loc">{{ tri.partner_2.county.name }}</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="match-actions" style="flex-wrap: wrap;">
+                    <a href="tel:{{ tri.partner_1.user.phone_number }}" class="btn-match-primary" style="flex: 1; min-width: 120px;">Call {{ tri.partner_1.user.first_name }}</a>
+                    <a href="{% url 'messenger:start_chat' tri.partner_1.user.id %}" class="btn-match-outline" style="flex: 1; min-width: 120px;"><i class="fas fa-comment"></i> Chat</a>
+                    <a href="tel:{{ tri.partner_2.user.phone_number }}" class="btn-match-primary" style="flex: 1; min-width: 120px; background: #a855f7;">Call {{ tri.partner_2.user.first_name }}</a>
+                    <a href="{% url 'messenger:start_chat' tri.partner_2.user.id %}" class="btn-match-outline" style="flex: 1; min-width: 120px;"><i class="fas fa-comment"></i> Chat</a>
+                </div>
+            </div>
+        {% empty %}
+            <div class="db-card" style="grid-column: 1/-1; text-align: center; padding: 5rem 0;">
+                <p style="color: var(--text-muted);">No triangle loop opportunities discovered yet.</p>
+            </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Tab Content: Possible -->
+<div id="possible" class="tab-pane">
+    <div class="matches-grid">
+        {% for match in possible %}
+            <div class="match-card">
+                <div class="match-header">
+                    <div class="match-avatar-small">{{ match.user.first_name|first }}</div>
+                    <div class="match-title">
+                        <h4>{{ match.user.first_name }} {{ match.user.last_name }}</h4>
+                        <span>{{ match.school_name }}</span>
+                    </div>
+                    <div style="margin-left: auto; background: #fff7ed; color: #ea580c; font-size: 0.7rem; font-weight: 800; padding: 0.3rem 0.6rem; border-radius: 6px;">SUBJECT MATCH</div>
+                </div>
+                
+                <div class="match-details">
+                    <p style="font-size: 0.85rem; color: var(--text-muted); font-style: italic; margin-bottom: 1.5rem;">Matches your subjects but hasn't listed your county as a preference yet.</p>
+                    <div class="detail-row">
+                        <label>Location</label>
+                        <span>{{ match.county.name }}</span>
+                    </div>
+                </div>
+                
+                <div class="match-actions">
+                    <a href="tel:{{ match.user.phone_number }}" class="btn-match-primary">Call Now</a>
+                    <a href="{% url 'messenger:start_chat' match.user.id %}" class="btn-match-outline"><i class="fas fa-comment"></i> Message</a>
+                </div>
+            </div>
+        {% empty %}
+            <div class="db-card" style="grid-column: 1/-1; text-align: center; padding: 5rem 0;">
+                <p style="color: var(--text-muted);">No possible matches found.</p>
+            </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function openTab(evt, tabName) {
+        var i, tabcontent, tablinks;
+        tabcontent = document.getElementsByClassName("tab-pane");
+        for (i = 0; i < tabcontent.length; i++) {
+            tabcontent[i].classList.remove("active");
+        }
+        tablinks = document.getElementsByClassName("app-tab-btn");
+        for (i = 0; i < tablinks.length; i++) {
+            tablinks[i].classList.remove("active");
+        }
+        document.getElementById(tabName).classList.add("active");
+        evt.currentTarget.classList.add("active");
+    }
+
+    // Hybrid Select Logic
+    const searchInput = document.getElementById('hybrid-search-input');
+    const dropdown = document.getElementById('hybrid-dropdown');
+    const tagsContainer = document.getElementById('selected-tags');
+    const realSelect = document.getElementById('real-county-select');
+
+    function renderTags() {
+        tagsContainer.innerHTML = '';
+        Array.from(realSelect.selectedOptions).forEach(opt => {
+            const tag = document.createElement('span');
+            tag.className = 'tag-item';
+            tag.innerHTML = `${opt.text} <i class="fas fa-times" data-val="${opt.value}"></i>`;
+            tag.querySelector('i').onclick = (e) => {
+                e.stopPropagation();
+                toggleOption(opt.value);
+            };
+            tagsContainer.appendChild(tag);
+        });
+        if (realSelect.selectedOptions.length > 0) {
+            searchInput.placeholder = '';
+        } else {
+            searchInput.placeholder = 'Search counties...';
+        }
+    }
+
+    function renderDropdown(filter = '') {
+        dropdown.innerHTML = '';
+        const options = Array.from(realSelect.options);
+        const filtered = options.filter(opt => opt.text.toLowerCase().includes(filter.toLowerCase()));
+        
+        if (filtered.length === 0) {
+            dropdown.innerHTML = '<div style="padding: 1rem; text-align: center; color: var(--text-muted); font-size: 0.85rem;">No counties found</div>';
+            return;
+        }
+
+        filtered.forEach(opt => {
+            const div = document.createElement('div');
+            div.className = `dropdown-option ${opt.selected ? 'selected' : ''}`;
+            div.innerHTML = `<span>${opt.text}</span> ${opt.selected ? '<i class="fas fa-check"></i>' : ''}`;
+            div.onclick = (e) => {
+                e.stopPropagation();
+                toggleOption(opt.value);
+            };
+            dropdown.appendChild(div);
+        });
+    }
+
+    function toggleOption(val) {
+        const opt = realSelect.querySelector(`option[value="${val}"]`);
+        opt.selected = !opt.selected;
+        renderTags();
+        searchInput.value = ''; // Clear search text on select
+        renderDropdown();
+        // Keep focus on input
+        searchInput.focus();
+    }
+
+    searchInput.addEventListener('focus', () => {
+        dropdown.classList.add('active');
+        renderDropdown(searchInput.value);
+    });
+
+    searchInput.addEventListener('input', (e) => {
+        renderDropdown(e.target.value);
+    });
+
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('.hybrid-select-container')) {
+            dropdown.classList.remove('active');
+        }
+    });
+
+    // Prevent enter from submitting form when searching
+    searchInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            // If there's exactly one filtered result, toggle it
+            const visibleOptions = dropdown.querySelectorAll('.dropdown-option');
+            if (visibleOptions.length === 1) {
+                visibleOptions[0].click();
+                searchInput.value = '';
+                renderDropdown();
+            }
+        }
+    });
+
+    // Initialize
+    renderTags();
+</script>
+{% endblock %}

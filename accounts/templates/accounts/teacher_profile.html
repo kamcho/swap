@@ -1,0 +1,413 @@
+{% extends 'core/base.html' %}
+
+{% block title %}{{ target_profile.user.first_name }}'s Profile - SwapMate{% endblock %}
+
+{% block content %}
+<div class="profile-page container">
+    <div class="profile-card">
+        <div class="profile-header">
+            <div class="avatar-large">{{ target_profile.user.first_name|first }}{{ target_profile.user.last_name|first }}</div>
+            <div class="profile-title">
+                <h1>{{ target_profile.user.first_name }} {{ target_profile.user.last_name }}</h1>
+                <p>{{ target_profile.school_name }} &bull; {{ target_profile.get_level_display }}</p>
+            </div>
+            <div class="profile-actions">
+                <a href="tel:{{ target_profile.user.phone_number }}" class="btn-primary">Call Now</a>
+                <a href="{% url 'messenger:start_chat' target_profile.user.id %}" class="btn-outline">Message</a>
+                {% if target_profile.user.email %}
+                    <a href="mailto:{{ target_profile.user.email }}" class="btn-outline">Email</a>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="profile-grid">
+            <div class="profile-section">
+                <h3>Current Station</h3>
+                <div class="info-item">
+                    <label>County</label>
+                    <p>{{ target_profile.county.name }}</p>
+                </div>
+                <div class="info-item">
+                    <label>Sub-County</label>
+                    <p>{{ target_profile.sub_county.name }}</p>
+                </div>
+                <div class="info-item">
+                    <label>Teaching Subjects</label>
+                    <div class="tag-group">
+                        {% for sub in target_profile.teaching_subjects.all %}
+                            <span class="tag">{{ sub.subject.name }}{% if sub.is_required %} (Required){% endif %}</span>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="profile-section">
+                <h3>Preferred Swap Locations</h3>
+                <div class="preference-list">
+                    {% for pref in target_profile.preferred_locations.all %}
+                        <div class="pref-item">
+                            <strong>{{ pref.county.name }}</strong>
+                            {% if pref.sub_county %}<span>Sub-County: {{ pref.sub_county.name }}</span>{% endif %}
+                        </div>
+                    {% empty %}
+                        <p>No preferred locations listed.</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+        {% if can_see_private %}
+        <!-- New Sections for Own Profile / Admin View -->
+        <div class="profile-tabs-container">
+            <div class="tabs-header">
+                <button class="tab-btn active" onclick="openTab(event, 'inbox-tab')">
+                    <i class="fas fa-inbox"></i>
+                    {% if request.user == target_profile.user %}My Inbox{% else %}Teacher's Inbox{% endif %}
+                </button>
+                <button class="tab-btn" onclick="openTab(event, 'whatsapp-tab')">
+                    <i class="fab fa-whatsapp"></i>
+                    WhatsApp Bot
+                </button>
+                <button class="tab-btn" onclick="openTab(event, 'ai-assistant-tab')">
+                    <i class="fas fa-robot"></i>
+                    AI Assistant
+                </button>
+            </div>
+
+            <!-- Inbox Tab -->
+            <div id="inbox-tab" class="tab-content active">
+                <div class="inbox-list">
+                    {% for conv in conversations %}
+                        {% with partner=conv.participants.all|first %}
+                            <a href="{% url 'messenger:chat_view' conv.id %}" class="inbox-item">
+                                <div class="partner-avatar">{{ partner.first_name|first }}</div>
+                                <div class="inbox-info">
+                                    <div class="inbox-top">
+                                        <h4>
+                                            {% if conv.participants.count > 2 %}
+                                                Group Chat
+                                            {% else %}
+                                                {{ conv.participants.exclude|join:", " }}
+                                                {% for p in conv.participants.all %}{% if p != request.user %}{{ p.first_name }} {{ p.last_name }}{% endif %}{% endfor %}
+                                            {% endif %}
+                                        </h4>
+                                        <span class="msg-time">{{ conv.updated_at|date:"d M" }}</span>
+                                    </div>
+                                    <p class="msg-preview">{{ conv.messages.last.text|truncatechars:60 }}</p>
+                                </div>
+                            </a>
+                        {% endwith %}
+                    {% empty %}
+                        <div class="empty-state">
+                            <i class="fas fa-inbox"></i>
+                            <p>No messages yet. Find matches to start chatting!</p>
+                            <a href="{% url 'accounts:find_swaps' %}" class="btn-primary">Find Swaps</a>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- WhatsApp Tab -->
+            <div id="whatsapp-tab" class="tab-content">
+                <div class="whatsapp-log-container">
+                    <div class="wa-log-header">
+                        <i class="fab fa-whatsapp"></i>
+                        <h3>Recent WhatsApp Activity</h3>
+                    </div>
+                    <div class="wa-log-list">
+                        {% for log in whatsapp_logs %}
+                            <div class="wa-log-item">
+                                <div class="wa-log-time">{{ log.created_at|date:"H:i, d M" }}</div>
+                                <div class="wa-log-msg user">
+                                    <strong>You:</strong> {{ log.user_message }}
+                                </div>
+                                <div class="wa-log-msg assistant">
+                                    <strong>Bot:</strong> {{ log.ai_response|truncatechars:150 }}
+                                </div>
+                            </div>
+                        {% empty %}
+                            <p class="empty-text">No WhatsApp activity recorded yet.</p>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- AI Assistant Tab -->
+            <div id="ai-assistant-tab" class="tab-content">
+                <div class="ai-chat-container">
+                    <div id="ai-messages" class="ai-messages">
+                        <div class="ai-msg bot">
+                            Hello! I'm your SwapMate AI assistant. How can I help you today?
+                        </div>
+                    </div>
+                    <div class="ai-input-wrap">
+                        <input type="text" id="ai-input" placeholder="Ask about matches, locations, or subjects..." autocomplete="off">
+                        <button id="ai-send-btn"><i class="fas fa-paper-plane"></i></button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+    function openTab(evt, tabName) {
+        var i, tabcontent, tablinks;
+        tabcontent = document.getElementsByClassName("tab-content");
+        for (i = 0; i < tabcontent.length; i++) {
+            tabcontent[i].classList.remove("active");
+        }
+        tablinks = document.getElementsByClassName("tab-btn");
+        for (i = 0; i < tablinks.length; i++) {
+            tablinks[i].classList.remove("active");
+        }
+        document.getElementById(tabName).classList.add("active");
+        evt.currentTarget.classList.add("active");
+    }
+
+    // Simple AI Assistant Simulation (or connect to backend)
+    const aiInput = document.getElementById('ai-input');
+    const aiSendBtn = document.getElementById('ai-send-btn');
+    const aiMessages = document.getElementById('ai-messages');
+
+    if (aiSendBtn) {
+        aiSendBtn.onclick = async () => {
+            const text = aiInput.value.trim();
+            if (!text) return;
+
+            appendAiMsg(text, 'user');
+            aiInput.value = '';
+
+            // Simulate Bot thinking
+            const loadingMsg = appendAiMsg('...', 'bot');
+            
+            try {
+                // Call the chat simulator endpoint
+                const response = await fetch('/messenger/simulator/', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        message: text,
+                        phone: "{{ request.user.phone_number }}",
+                        whatsapp_name: "{{ request.user.first_name }}"
+                    })
+                });
+                const data = await response.json();
+                loadingMsg.innerText = data.reply;
+            } catch (e) {
+                loadingMsg.innerText = "Sorry, I'm having trouble connecting right now.";
+            }
+        };
+    }
+
+    function appendAiMsg(text, type) {
+        const div = document.createElement('div');
+        div.className = `ai-msg ${type}`;
+        div.innerText = text;
+        aiMessages.appendChild(div);
+        aiMessages.scrollTop = aiMessages.scrollHeight;
+        return div;
+    }
+</script>
+
+<style>
+    :root {
+        --wa-green: #25D366;
+        --ai-blue: #6366f1;
+        --premium-bg: rgba(255, 255, 255, 0.03);
+    }
+
+    .profile-page { padding: 2rem; max-width: 1000px; margin: 0 auto; }
+    
+    .profile-card { 
+        background: var(--glass); 
+        border: 1px solid var(--glass-border); 
+        border-radius: 24px; 
+        padding: 2rem; 
+        backdrop-filter: blur(20px); 
+    }
+    
+    .profile-header { 
+        display: flex; 
+        align-items: center; 
+        gap: 2rem; 
+        margin-bottom: 2rem; 
+        border-bottom: 1px solid var(--glass-border); 
+        padding-bottom: 2rem; 
+        flex-wrap: wrap; 
+    }
+    
+    .avatar-large { 
+        width: 80px; 
+        height: 80px; 
+        background: var(--primary-gradient); 
+        border-radius: 20px; 
+        display: flex; 
+        align-items: center; 
+        justify-content: center; 
+        font-size: 2rem; 
+        font-weight: 800; 
+        color: white; 
+        box-shadow: 0 10px 20px rgba(99, 102, 241, 0.2); 
+    }
+    
+    .profile-title h1 { font-size: 2rem; font-weight: 800; margin-bottom: 0.25rem; }
+    .profile-title p { color: var(--text-muted); font-size: 1.1rem; }
+    
+    .profile-actions { margin-left: auto; display: flex; gap: 0.75rem; }
+    .btn-primary, .btn-outline { padding: 0.75rem 1.5rem; border-radius: 12px; font-weight: 600; font-size: 0.95rem; }
+    
+    .profile-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-bottom: 3rem; }
+    .profile-section h3 { font-size: 1.25rem; font-weight: 700; margin-bottom: 1.5rem; color: var(--primary); }
+    
+    .info-item { margin-bottom: 1.5rem; }
+    .info-item label { display: block; font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); letter-spacing: 1px; margin-bottom: 0.4rem; font-weight: 700; }
+    .info-item p { font-size: 1.1rem; font-weight: 500; }
+    
+    .tag-group { display: flex; flex-wrap: wrap; gap: 0.75rem; }
+    .tag { background: var(--premium-bg); padding: 0.5rem 1rem; border-radius: 12px; font-size: 0.9rem; border: 1px solid var(--glass-border); }
+    
+    .preference-list { display: grid; gap: 1rem; }
+    .pref-item { background: var(--premium-bg); padding: 1.25rem; border-radius: 16px; border: 1px solid var(--glass-border); }
+    .pref-item strong { display: block; font-size: 1.1rem; margin-bottom: 0.25rem; font-weight: 700; }
+    .pref-item span { color: var(--text-muted); font-size: 0.9rem; }
+
+    /* Tabs Hub */
+    .profile-tabs-container { 
+        margin-top: 3rem; 
+        border: 1px solid var(--glass-border); 
+        border-radius: 20px; 
+        overflow: hidden; 
+    }
+    
+    .tabs-header { 
+        display: flex; 
+        background: rgba(0,0,0,0.1); 
+        padding: 0.5rem; 
+        gap: 0.25rem;
+    }
+    
+    .tab-btn { 
+        flex: 1;
+        background: none; 
+        border: none; 
+        color: var(--text-muted); 
+        font-size: 0.9rem; 
+        font-weight: 700; 
+        cursor: pointer; 
+        padding: 1rem; 
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+    }
+    
+    .tab-btn.active { 
+        background: var(--glass); 
+        color: var(--text); 
+    }
+    .tab-btn[onclick*="inbox"].active { color: var(--primary); }
+    .tab-btn[onclick*="whatsapp"].active { color: var(--wa-green); }
+    .tab-btn[onclick*="ai"].active { color: var(--ai-blue); }
+    
+    .tab-content { display: none; padding: 2rem; }
+    .tab-content.active { display: block; }
+    
+    /* Inbox */
+    .inbox-list { display: grid; gap: 1rem; }
+    .inbox-item { 
+        display: flex; 
+        align-items: center; 
+        gap: 1rem; 
+        padding: 1.25rem; 
+        background: var(--premium-bg); 
+        border-radius: 16px; 
+        text-decoration: none; 
+        border: 1px solid var(--glass-border); 
+    }
+    .partner-avatar { 
+        width: 48px; 
+        height: 48px; 
+        background: var(--primary-gradient); 
+        border-radius: 12px; 
+        display: flex; 
+        align-items: center; 
+        justify-content: center; 
+        font-weight: 800; 
+        color: white;
+    }
+    .inbox-top h4 { font-size: 1.1rem; margin-bottom: 0.25rem; color: var(--text); font-weight: 700; }
+    .msg-time { font-size: 0.8rem; color: var(--text-muted); }
+    .msg-preview { font-size: 0.95rem; color: var(--text-muted); }
+
+    /* WhatsApp Logs */
+    .wa-log-list { display: flex; flex-direction: column; gap: 1.5rem; }
+    .wa-log-item { 
+        background: var(--premium-bg); 
+        padding: 1.5rem; 
+        border-radius: 16px; 
+        border-left: 4px solid var(--wa-green);
+    }
+    .wa-log-time { font-size: 0.75rem; font-weight: 700; color: var(--wa-green); margin-bottom: 1rem; display: block; text-transform: uppercase; }
+    .wa-log-msg { font-size: 1rem; line-height: 1.5; padding: 0.75rem; border-radius: 10px; }
+    .wa-log-msg strong { font-size: 0.7rem; margin-right: 0.75rem; }
+
+    /* AI Assistant */
+    .ai-chat-container { 
+        height: 450px; 
+        background: #0b141a; 
+        border-radius: 16px; 
+        display: flex; 
+        flex-direction: column; 
+    }
+    .ai-messages { 
+        flex: 1; 
+        padding: 1.5rem; 
+        display: flex; 
+        flex-direction: column; 
+        gap: 1rem;
+        background-image: url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png');
+        background-blend-mode: overlay;
+        background-color: rgba(11, 20, 26, 0.98);
+    }
+    .ai-msg { 
+        max-width: 85%; 
+        padding: 0.75rem 1.25rem; 
+        border-radius: 12px; 
+        font-size: 1rem; 
+    }
+    .ai-msg.bot { align-self: flex-start; background: #202c33; color: #e9edef; }
+    .ai-msg.user { align-self: flex-end; background: #005c4b; color: #e9edef; }
+    
+    .ai-input-wrap { padding: 1rem 1.5rem; background: #202c33; display: flex; gap: 1rem; }
+    .ai-input-wrap input { 
+        flex: 1; 
+        background: #2a3942; 
+        border: none; 
+        padding: 0.75rem 1.25rem; 
+        border-radius: 20px; 
+        color: white; 
+        font-size: 1rem;
+    }
+    .ai-send-btn { 
+        width: 45px; 
+        height: 45px; 
+        background: var(--wa-green); 
+        border: none; 
+        border-radius: 50%; 
+        color: white; 
+    }
+
+    .empty-state { padding: 4rem 2rem; }
+
+    @media (max-width: 800px) {
+        .profile-grid { grid-template-columns: 1fr; }
+        .profile-header { text-align: center; justify-content: center; }
+        .profile-actions { width: 100%; justify-content: center; }
+    }
+</style>
+{% endblock %}

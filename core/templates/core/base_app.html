@@ -1,0 +1,168 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}SwapMate AI{% endblock %}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="{% static 'core/css/style.css' %}">
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <div class="app-layout">
+        <!-- Mobile Header -->
+        <div class="mobile-app-bar">
+            <button id="sidebar-toggle"><i class="fas fa-bars"></i></button>
+            <div class="mobile-logo">Swap<span>Mate</span></div>
+            <div class="avatar-small">{{ user.first_name|first }}</div>
+        </div>
+
+        <!-- Sidebar -->
+        <aside class="app-sidebar" id="app-sidebar">
+            <a href="/" class="logo" style="color: var(--text-dark); font-weight: 800;">Swap<span>Mate AI</span></a>
+            
+            <nav class="sidebar-nav">
+                <a href="{% url 'accounts:dashboard' %}" class="nav-item {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
+                    <i class="fas fa-grid-2"></i>
+                    Dashboard
+                </a>
+                <a href="{% url 'accounts:find_swaps' %}" class="nav-item {% if request.resolver_match.url_name == 'find_swaps' %}active{% endif %}">
+                    <i class="fas fa-users"></i>
+                    Find Swaps
+                </a>
+                <a href="{% url 'messenger:inbox' %}" class="nav-item {% if '/messenger/' in request.path %}active{% endif %}">
+                    <i class="fas fa-comment-dots"></i>
+                    Messages
+                    <span id="global-unread-badge" class="badge-unread" {% if not unread_messages_count or unread_messages_count == 0 %}style="display:none;"{% endif %}>
+                        {{ unread_messages_count }}
+                    </span>
+                </a>
+
+                {% if user.is_staff %}
+                <a href="{% url 'accounts:staff_dashboard' %}" class="nav-item {% if request.resolver_match.url_name == 'staff_dashboard' %}active{% endif %}">
+                    <i class="fas fa-chart-pie"></i>
+                    Staff Analytics
+                </a>
+                <a href="{% url 'messenger:bulk_onboard' %}" class="nav-item {% if request.resolver_match.url_name == 'bulk_onboard' %}active{% endif %}">
+                    <i class="fas fa-users-cog"></i>
+                    Mass Onboarding
+                </a>
+                <a href="{% url 'messenger:whatsapp_admin' %}" class="nav-item {% if request.resolver_match.url_name == 'whatsapp_admin' %}active{% endif %}">
+                    <i class="fab fa-whatsapp"></i>
+                    WhatsApp Bot Log
+                </a>
+                {% endif %}
+            </nav>
+
+            <div class="sidebar-footer">
+                <a href="#" class="feedback-card">
+                    <span>Leave Feedback</span>
+                    <i class="fas fa-chevron-right"></i>
+                </a>
+                <form action="{% url 'accounts:logout' %}" method="post" style="margin-top: 1rem;">
+                    {% csrf_token %}
+                    <button type="submit" class="nav-item" style="width: 100%; border: none; background: none; cursor: pointer; text-align: left;">
+                        <i class="fas fa-sign-out-alt"></i>
+                        Logout
+                    </button>
+                </form>
+            </div>
+        </aside>
+
+        <!-- Main Area -->
+        <main class="app-main">
+            <header class="app-header">
+                <div class="header-search">
+                    <i class="fas fa-search"></i>
+                    <input type="text" placeholder="Search matches, schools or locations...">
+                </div>
+                
+                <div class="header-actions">
+                    <div class="dropdown">
+                        <button class="btn-secondary" style="padding: 0.5rem 1rem; border-radius: 50px; font-size: 0.85rem;">
+                            {{ profile.get_level_display }} <i class="fas fa-chevron-down" style="margin-left: 0.5rem; font-size: 0.7rem;"></i>
+                        </button>
+                    </div>
+                    <div class="user-pill">
+                        <div class="avatar-small">{{ user.first_name|first }}</div>
+                        <div class="user-info-text">
+                            <strong>{{ user.first_name }} {{ user.last_name }}</strong>
+                            <span>Teacher</span>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+
+    <!-- Floating Chat Widget -->
+    <div class="chat-widget" id="chat-toggle-new" style="bottom: 2rem; right: 2rem;">
+        <i class="fas fa-comment-alt" style="font-size: 1.5rem;"></i>
+    </div>
+
+    <script>
+        const sidebarToggle = document.getElementById('sidebar-toggle');
+        const sidebar = document.getElementById('app-sidebar');
+        
+        if (sidebarToggle) {
+            sidebarToggle.addEventListener('click', () => {
+                sidebar.classList.toggle('active');
+            });
+        }
+
+        // Close sidebar when clicking outside on mobile
+        document.addEventListener('click', (e) => {
+            if (window.innerWidth <= 1024 && sidebar.classList.contains('active')) {
+                if (!sidebar.contains(e.target) && !sidebarToggle.contains(e.target)) {
+                    sidebar.classList.remove('active');
+                }
+            }
+        });
+
+        // --- Global Inbox WebSocket (Sidebar Counter & Inbox List Sync) ---
+        {% if user.is_authenticated %}
+        const wsProtocolGlobal = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
+        const globalInboxSocket = new WebSocket(
+            wsProtocolGlobal + window.location.host + '/ws/inbox/'
+        );
+
+        globalInboxSocket.onmessage = (e) => {
+            const data = JSON.parse(e.data);
+            if (data.type === 'inbox_update') {
+                // 1. Update Global Sidebar Badge
+                const globalBadge = document.getElementById('global-unread-badge');
+                if (globalBadge) {
+                    // We need the total count, not just for this conversation.
+                    // For simplicity, let's trigger a total count update or just increment/decrement.
+                    // Actually, let's fetch the total count or have the consumer send it.
+                    // For now, let's reload the badge if we have the info.
+                    // Wait, the consumer sends 'unread_count' for THAT conversation.
+                    // I'll update the consumer to send TOTAL_UNREAD_COUNT as well.
+                    if (data.total_unread_count !== undefined) {
+                        globalBadge.textContent = data.total_unread_count;
+                        globalBadge.style.display = data.total_unread_count > 0 ? 'flex' : 'none';
+                    }
+                }
+
+                // 2. If we are on the inbox page, update the list
+                if (typeof updateInboxItem === 'function') {
+                    updateInboxItem(data);
+                }
+            }
+        };
+
+        globalInboxSocket.onclose = () => {
+            console.log('Global Inbox WebSocket disconnected. Reconnecting in 5s...');
+            setTimeout(() => window.location.reload(), 5000);
+        };
+        {% endif %}
+    </script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

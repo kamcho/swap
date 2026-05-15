@@ -1,0 +1,138 @@
+{% extends 'core/base_app.html' %}
+
+{% load messenger_tags %}
+
+{% block title %}Messages - SwapMate AI{% endblock %}
+
+{% block content %}
+<div class="db-welcome" style="margin-bottom: 2rem;">
+    <h1 style="font-size: 2rem; font-weight: 800;">Your Conversations</h1>
+    <p style="color: var(--text-muted);">Connect with potential swap partners directly.</p>
+</div>
+
+<div class="db-card" style="padding: 0;">
+    <div class="inbox-list" id="inbox-list">
+        {% for conv in conversations %}
+            {% with partners=conv|get_partners:request.user %}
+            {% if partners %}
+            <a href="{% url 'messenger:chat_view' conv.id %}" class="inbox-item" data-conversation-id="{{ conv.id }}">
+                <div class="inbox-avatar">
+                    {% if partners.count > 1 %}<i class="fas fa-users"></i>{% else %}{{ partners.first.first_name|first }}{% endif %}
+                </div>
+                <div class="inbox-details">
+                    <div class="inbox-header">
+                        <h4>
+                            {% if partners.count > 1 %}
+                                Virtual Swap Meeting
+                            {% else %}
+                                {{ partners.first.first_name }} {{ partners.first.last_name }}
+                            {% endif %}
+                        </h4>
+                        <span class="inbox-time">{{ conv.updated_at|timesince }} ago</span>
+                    </div>
+                    <div class="inbox-preview-wrap">
+                        <div class="inbox-preview">
+                            {% with last_msg=conv.messages.last %}
+                                {% if last_msg %}
+                                    {{ last_msg.text|truncatechars:100 }}
+                                {% else %}
+                                    No messages yet.
+                                {% endif %}
+                            {% endwith %}
+                        </div>
+                        {% if conv|has_unread:request.user %}
+                            <div class="unread-indicator-wa">{{ conv|unread_count:request.user }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+            </a>
+            {% endif %}
+            {% endwith %}
+        {% empty %}
+            <div style="padding: 5rem; text-align: center;" id="empty-inbox">
+                <div style="font-size: 3rem; color: #f1f5f9; margin-bottom: 1.5rem;"><i class="fas fa-comments"></i></div>
+                <p style="color: var(--text-muted);">No conversations yet. Start a chat from a profile!</p>
+            </div>
+        {% endfor %}
+    </div>
+</div>
+
+<style>
+    .inbox-list { display: flex; flex-direction: column; background: white; }
+    .inbox-item { display: flex; align-items: center; gap: 1rem; padding: 0.75rem 1rem; border-bottom: 1px solid #f1f5f9; text-decoration: none; color: inherit; transition: 0.2s; position: relative; }
+    .inbox-item:hover { background: #f5f6f6; }
+    .inbox-item.has-new { background: #f0f9ff; }
+    
+    .inbox-avatar { width: 50px; height: 50px; background: #dfe5e7; color: #54656f; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 1.1rem; flex-shrink: 0; }
+    .inbox-details { flex-grow: 1; min-width: 0; border-bottom: 1px solid transparent; padding-bottom: 2px; }
+    .inbox-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.1rem; }
+    .inbox-header h4 { font-size: 1rem; font-weight: 500; color: #111b21; margin: 0; }
+    .inbox-time { font-size: 0.75rem; color: #667781; }
+    
+    .inbox-preview-wrap { display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; }
+    .inbox-preview { font-size: 0.85rem; color: #667781; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex-grow: 1; }
+    
+    .unread-indicator-wa { background: #c51f3d; color: white; min-width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.7rem; font-weight: 700; padding: 0 4px; }
+
+    @media (max-width: 768px) {
+        .db-welcome { display: none; }
+        .db-card { border-radius: 0; border: none; box-shadow: none; }
+        .inbox-item { padding: 0.7rem 0.9rem; }
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // updateInboxItem is called by the global WebSocket in base_app.html
+    function updateInboxItem(data) {
+        const inboxList = document.getElementById('inbox-list');
+        const item = document.querySelector(`[data-conversation-id="${data.conversation_id}"]`);
+
+        // Remove the empty state if it exists
+        const emptyInbox = document.getElementById('empty-inbox');
+        if (emptyInbox) emptyInbox.remove();
+
+        if (item) {
+            // Update preview text
+            const preview = item.querySelector('.inbox-preview');
+            if (preview) preview.textContent = data.message_preview;
+
+            // Update timestamp
+            const time = item.querySelector('.inbox-time');
+            if (time) time.textContent = 'Just now';
+
+            // Update or create unread badge
+            const previewWrap = item.querySelector('.inbox-preview-wrap');
+            let badge = item.querySelector('.unread-indicator-wa');
+            
+            if (data.unread_count > 0) {
+                if (badge) {
+                    badge.textContent = data.unread_count;
+                } else {
+                    badge = document.createElement('div');
+                    badge.className = 'unread-indicator-wa';
+                    badge.textContent = data.unread_count;
+                    previewWrap.appendChild(badge);
+                }
+            } else if (badge) {
+                badge.remove();
+            }
+
+            // Make the name bold for unread conversations
+            const name = item.querySelector('.inbox-header h4');
+            if (name) name.style.fontWeight = '700';
+
+            // Flash effect
+            item.classList.add('has-new');
+            setTimeout(() => item.classList.remove('has-new'), 2000);
+
+            // Move conversation to the top of the list
+            inboxList.prepend(item);
+        } else {
+            // Might be a new conversation, refresh to show it
+            window.location.reload();
+        }
+    }
+</script>
+{% endblock %}

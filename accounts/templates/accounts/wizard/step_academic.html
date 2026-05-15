@@ -1,0 +1,45 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Step 2: Academic Info - SwapMate{% endblock %}
+
+{% block content %}
+<section class="auth-section">
+    <div class="container">
+        <div class="auth-card" style="max-width: 500px;">
+            <div class="wizard-progress">
+                <div class="progress-step active"><i class="fas fa-check"></i></div>
+                <div class="progress-step active">2</div>
+                <div class="progress-step">3</div>
+                <div class="progress-step">4</div>
+            </div>
+            
+            <h2 style="margin-top: 1rem;">Academic Info</h2>
+            <p>Tell us about your current workstation.</p>
+            
+            <form method="post" class="auth-form" style="margin-top: 2rem;">
+                {% csrf_token %}
+                {% for field in form %}
+                    <div class="form-group">
+                        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                        {{ field }}
+                        {% if field.errors %}
+                            <div class="error-list">{{ field.errors }}</div>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+                <div style="margin-top: 2.5rem; display: flex; gap: 1rem;">
+                    <a href="{% url 'accounts:step_personal' %}" class="btn-secondary" style="flex: 1; text-align: center; padding: 0.85rem;">Back</a>
+                    <button type="submit" class="btn-auth" style="flex: 2; margin-top: 0;">Next Step &raquo;</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</section>
+
+<style>
+    .wizard-progress { display: flex; justify-content: center; gap: 1.5rem; margin-bottom: 2rem; }
+    .progress-step { width: 40px; height: 40px; border-radius: 50%; background: #f1f5f9; border: 2px solid #e2e8f0; display: flex; align-items: center; justify-content: center; font-weight: 800; color: #94a3b8; font-size: 0.9rem; transition: 0.3s; }
+    .progress-step.active { background: #fff1f2; border-color: var(--primary); color: var(--primary); box-shadow: 0 0 0 4px rgba(197, 31, 61, 0.1); }
+    .progress-step i { font-size: 0.75rem; }
+</style>
+{% endblock %}

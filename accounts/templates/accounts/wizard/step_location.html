@@ -1,0 +1,127 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Step 3: Location - SwapMate{% endblock %}
+
+{% block content %}
+<section class="auth-section">
+    <div class="container">
+        <div class="auth-card" style="max-width: 550px;">
+            <div class="wizard-progress">
+                <div class="progress-step active"><i class="fas fa-check"></i></div>
+                <div class="progress-step active"><i class="fas fa-check"></i></div>
+                <div class="progress-step active">3</div>
+                <div class="progress-step">4</div>
+            </div>
+            
+            <h2 style="margin-top: 1rem;">School Location</h2>
+            <p>Where is your current school located?</p>
+            
+            <form method="post" class="auth-form" style="margin-top: 2rem;">
+                {% csrf_token %}
+                <div class="form-group">
+                    <label for="id_county"><i class="fas fa-map-marker-alt" style="margin-right: 0.5rem; color: var(--primary);"></i> County</label>
+                    {{ form.county }}
+                </div>
+                
+                <div id="sub-county-wrapper" class="form-group" style="display: none;">
+                    <label for="id_sub_county"><i class="fas fa-map-signs" style="margin-right: 0.5rem; color: var(--primary);"></i> Sub-County</label>
+                    {{ form.sub_county }}
+                </div>
+
+                <div id="ward-wrapper" class="form-group" style="display: none;">
+                    <label for="id_ward"><i class="fas fa-map-pin" style="margin-right: 0.5rem; color: var(--primary);"></i> Ward</label>
+                    {{ form.ward }}
+                </div>
+                
+                <div style="margin-top: 2.5rem; display: flex; gap: 1rem;">
+                    <a href="{% url 'accounts:step_academic' %}" class="btn-secondary" style="flex: 1; text-align: center; padding: 0.85rem;">Back</a>
+                    <button type="submit" class="btn-auth" style="flex: 2; margin-top: 0;">Next Step &raquo;</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</section>
+
+<script>
+    const countySelect = document.getElementById('id_county');
+    const subCountyWrapper = document.getElementById('sub-county-wrapper');
+    const subCountySelect = document.getElementById('id_sub_county');
+    const wardWrapper = document.getElementById('ward-wrapper');
+    const wardSelect = document.getElementById('id_ward');
+
+    function updateSubCounties(countyId, selectedSubCountyId = null) {
+        if (!countyId) {
+            subCountyWrapper.style.display = 'none';
+            wardWrapper.style.display = 'none';
+            return;
+        }
+
+        subCountyWrapper.style.display = 'block';
+        subCountySelect.innerHTML = '<option value="">Loading...</option>';
+        
+        fetch(`/locations/api/sub-counties/?county_id=${countyId}`)
+            .then(response => response.json())
+            .then(data => {
+                subCountySelect.innerHTML = '<option value="">Select Sub-County</option>';
+                data.forEach(item => {
+                    const option = document.createElement('option');
+                    option.value = item.id;
+                    option.textContent = item.name;
+                    if (selectedSubCountyId && item.id == selectedSubCountyId) {
+                        option.selected = true;
+                    }
+                    subCountySelect.appendChild(option);
+                });
+                
+                if (selectedSubCountyId) {
+                    updateWards(selectedSubCountyId, "{{ profile.ward_id|default:'' }}");
+                }
+            });
+    }
+
+    function updateWards(subCountyId, selectedWardId = null) {
+        if (!subCountyId) {
+            wardWrapper.style.display = 'none';
+            return;
+        }
+
+        wardWrapper.style.display = 'block';
+        wardSelect.innerHTML = '<option value="">Loading...</option>';
+        
+        fetch(`/locations/api/wards/?sub_county_id=${subCountyId}`)
+            .then(response => response.json())
+            .then(data => {
+                wardSelect.innerHTML = '<option value="">Select Ward</option>';
+                data.forEach(item => {
+                    const option = document.createElement('option');
+                    option.value = item.id;
+                    option.textContent = item.name;
+                    if (selectedWardId && item.id == selectedWardId) {
+                        option.selected = true;
+                    }
+                    wardSelect.appendChild(option);
+                });
+            });
+    }
+
+    countySelect.addEventListener('change', function() {
+        updateSubCounties(this.value);
+    });
+
+    subCountySelect.addEventListener('change', function() {
+        updateWards(this.value);
+    });
+
+    // Check on load (for validation errors or initial data)
+    if (countySelect.value) {
+        updateSubCounties(countySelect.value, "{{ profile.sub_county_id|default:'' }}");
+    }
+</script>
+
+<style>
+    .wizard-progress { display: flex; justify-content: center; gap: 1.5rem; margin-bottom: 2rem; }
+    .progress-step { width: 40px; height: 40px; border-radius: 50%; background: #f1f5f9; border: 2px solid #e2e8f0; display: flex; align-items: center; justify-content: center; font-weight: 800; color: #94a3b8; font-size: 0.9rem; transition: 0.3s; }
+    .progress-step.active { background: #fff1f2; border-color: var(--primary); color: var(--primary); box-shadow: 0 0 0 4px rgba(197, 31, 61, 0.1); }
+    .progress-step i { font-size: 0.75rem; }
+</style>
+{% endblock %}

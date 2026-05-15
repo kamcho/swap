@@ -1,0 +1,269 @@
+{% extends 'core/base_app.html' %}
+
+{% block title %}WhatsApp Simulator - SwapMate AI{% endblock %}
+
+{% block content %}
+<div class="db-welcome" style="margin-bottom: 2rem;">
+    <h1 style="font-size: 2rem; font-weight: 800;">WhatsApp Simulator</h1>
+    <p style="color: var(--text-muted);">Test the AI Assistant by simulating WhatsApp messages.</p>
+</div>
+
+<div class="simulator-layout" style="display: flex; gap: 4rem; align-items: start;">
+    <!-- Phone Mockup -->
+    <div class="phone-mockup">
+        <div class="phone-header">
+            <div class="contact-info">
+                <div class="sim-avatar">S</div>
+                <div class="name-status">
+                    <span class="name">SwapMate Assistant</span>
+                    <span class="status">online</span>
+                </div>
+            </div>
+            <div class="header-icons">
+                <i class="fas fa-video"></i>
+                <i class="fas fa-phone"></i>
+                <i class="fas fa-ellipsis-v"></i>
+            </div>
+        </div>
+        <div id="chat-box" class="chat-box">
+            <div class="msg-bubble received">
+                Hello! This is the SwapMate AI Simulator. 
+                <div class="msg-time">09:00 AM</div>
+            </div>
+            <div class="msg-bubble received">
+                Enter your registered phone number below and start chatting to find matches.
+                <div class="msg-time">09:01 AM</div>
+            </div>
+        </div>
+        <div class="chat-controls">
+            <div class="phone-input-wrap">
+                <input type="text" id="phone-input" placeholder="Phone: e.g. 0712345678" value="{{ user.phone_number }}">
+            </div>
+            <div class="input-area">
+                <div class="input-pill">
+                    <i class="far fa-smile"></i>
+                    <input type="text" id="msg-input" placeholder="Type a message...">
+                    <i class="fas fa-paperclip"></i>
+                    <i class="fas fa-camera"></i>
+                </div>
+                <button id="send-sim"><i class="fas fa-paper-plane"></i></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Instructions Card -->
+    <div class="db-card" style="flex: 1; max-width: 500px;">
+        <h3 style="font-size: 1.25rem; font-weight: 800; margin-bottom: 1.5rem;">How to use the Simulator</h3>
+        <ul style="display: flex; flex-direction: column; gap: 1.5rem; list-style: none; padding: 0;">
+            <li style="display: flex; gap: 1rem;">
+                <div style="width: 24px; height: 24px; background: var(--primary); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; flex-shrink: 0;">1</div>
+                <div>
+                    <strong style="display: block; font-size: 0.95rem;">Enter Phone Number</strong>
+                    <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.25rem;">Use the number linked to your Teacher Profile.</p>
+                </div>
+            </li>
+            <li style="display: flex; gap: 1rem;">
+                <div style="width: 24px; height: 24px; background: var(--primary); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; flex-shrink: 0;">2</div>
+                <div>
+                    <strong style="display: block; font-size: 0.95rem;">Send a Message</strong>
+                    <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.25rem;">Try: "I need a swap in Nairobi" or "Show my matches".</p>
+                </div>
+            </li>
+            <li style="display: flex; gap: 1rem;">
+                <div style="width: 24px; height: 24px; background: var(--primary); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; flex-shrink: 0;">3</div>
+                <div>
+                    <strong style="display: block; font-size: 0.95rem;">AI Response</strong>
+                    <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.25rem;">The AI will analyze your profile and return potential partners instantly.</p>
+                </div>
+            </li>
+        </ul>
+        
+        <div style="margin-top: 3rem; padding: 1.5rem; background: #fff5f6; border-radius: 16px; border: 1px solid rgba(197, 31, 61, 0.1);">
+            <strong style="display: block; color: var(--primary); margin-bottom: 0.5rem;">Pro Tip</strong>
+            <p style="font-size: 0.85rem; color: var(--text-dark);">The simulator uses the same logic as the real WhatsApp bot. If it works here, it works on WhatsApp!</p>
+        </div>
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+    const chatBox = document.getElementById('chat-box');
+    const msgInput = document.getElementById('msg-input');
+    const phoneInput = document.getElementById('phone-input');
+    const sendBtn = document.getElementById('send-sim');
+
+    function addMsg(text, type) {
+        const div = document.createElement('div');
+        div.className = `msg-bubble ${type}`;
+        
+        const now = new Date();
+        const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        
+        div.innerHTML = `${text}<div class="msg-time">${timeStr}</div>`;
+        chatBox.appendChild(div);
+        chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
+    async function sendMsg() {
+        const message = msgInput.value.trim();
+        const phone = phoneInput.value.trim();
+        if(!message || !phone) return;
+
+        addMsg(message, 'sent');
+        msgInput.value = '';
+
+        try {
+            const response = await fetch('', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}'},
+                body: JSON.stringify({phone, message})
+            });
+            const data = await response.json();
+            addMsg(data.reply, 'received');
+        } catch (e) {
+            addMsg("Oops! Something went wrong. Check your connection.", 'received');
+        }
+    }
+
+    sendBtn.addEventListener('click', sendMsg);
+    msgInput.addEventListener('keypress', (e) => { if(e.key === 'Enter') sendMsg(); });
+</script>
+{% endblock %}
+
+<style>
+    .phone-mockup { 
+        width: 360px; 
+        height: 640px; 
+        background: #e5ddd5; 
+        border-radius: 40px; 
+        border: 10px solid #1f2937; 
+        display: flex; 
+        flex-direction: column; 
+        overflow: hidden; 
+        box-shadow: 0 40px 80px rgba(0,0,0,0.15); 
+    }
+    
+    .phone-header { 
+        background: #075e54; 
+        padding: 1rem; 
+        display: flex; 
+        align-items: center; 
+        justify-content: space-between;
+        color: white;
+    }
+    
+    .contact-info { display: flex; align-items: center; gap: 0.75rem; }
+    .sim-avatar { 
+        width: 36px; 
+        height: 36px; 
+        background: #128c7e; 
+        border-radius: 50%; 
+        display: flex; 
+        align-items: center; 
+        justify-content: center; 
+        font-weight: 700; 
+        font-size: 0.9rem;
+    }
+    
+    .name-status { display: flex; flex-direction: column; }
+    .name-status .name { font-weight: 700; font-size: 0.85rem; }
+    .name-status .status { font-size: 0.65rem; opacity: 0.8; }
+    
+    .header-icons { display: flex; gap: 1rem; font-size: 0.9rem; opacity: 0.9; }
+
+    .chat-box { 
+        flex: 1; 
+        padding: 1rem; 
+        overflow-y: auto; 
+        display: flex; 
+        flex-direction: column; 
+        gap: 0.75rem; 
+        background-image: url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png'); 
+        background-size: cover; 
+    }
+    
+    .msg-bubble { 
+        padding: 0.6rem 0.8rem; 
+        border-radius: 12px; 
+        max-width: 85%; 
+        font-size: 0.85rem; 
+        line-height: 1.4; 
+        color: #111; 
+        position: relative;
+        box-shadow: 0 1px 1px rgba(0,0,0,0.1);
+    }
+    
+    .msg-bubble.received { 
+        background: white; 
+        align-self: flex-start; 
+        border-top-left-radius: 0; 
+    }
+    
+    .msg-bubble.sent { 
+        background: #dcf8c6; 
+        align-self: flex-end; 
+        border-top-right-radius: 0; 
+    }
+    
+    .msg-time { 
+        font-size: 0.6rem; 
+        color: #888; 
+        text-align: right; 
+        margin-top: 0.25rem; 
+    }
+
+    .chat-controls { 
+        background: #f0f2f5; 
+        padding: 0.75rem; 
+        display: flex; 
+        flex-direction: column; 
+        gap: 0.5rem; 
+    }
+    
+    .phone-input-wrap input { 
+        width: 100%;
+        padding: 0.5rem 1rem; 
+        border: 1px solid #ddd; 
+        border-radius: 8px; 
+        font-size: 0.8rem; 
+        outline: none; 
+    }
+    
+    .input-area { display: flex; gap: 0.5rem; align-items: center; }
+    
+    .input-pill { 
+        flex: 1; 
+        background: white; 
+        padding: 0.6rem 1rem; 
+        border-radius: 25px; 
+        display: flex; 
+        align-items: center; 
+        gap: 0.75rem;
+        color: #888;
+    }
+    
+    .input-pill input { 
+        flex: 1; 
+        border: none; 
+        outline: none; 
+        font-size: 0.9rem; 
+        font-family: inherit;
+    }
+    
+    #send-sim { 
+        background: #128c7e; 
+        color: white; 
+        border: none; 
+        border-radius: 50%; 
+        width: 42px; 
+        height: 42px; 
+        cursor: pointer; 
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: 0.3s;
+    }
+    
+    #send-sim:hover { transform: scale(1.05); background: #075e54; }
+</style>
+{% endblock %}

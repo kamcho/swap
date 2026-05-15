@@ -1,0 +1,476 @@
+{% extends 'core/base_app.html' %}
+
+{% block title %}
+    {% if is_group %}Meeting: {% for p in partners %}{{ p.first_name }}{% if not forloop.last %}, {% endif %}{% endfor %}{% else %}Chat with {{ partner.first_name }}{% endif %} - SwapMate AI
+{% endblock %}
+
+{% block content %}
+<div class="chat-container-fullscreen">
+    <!-- WhatsApp-style Header -->
+    <div class="whatsapp-header">
+        <div class="wa-header-left">
+            <a href="{% url 'messenger:inbox' %}" class="wa-back"><i class="fas fa-arrow-left"></i></a>
+            <div class="wa-avatar">
+                {% if is_group %}<i class="fas fa-users"></i>{% else %}{{ partner.first_name|first }}{% endif %}
+            </div>
+            <div class="wa-info">
+                {% if is_group %}
+                    <h3>Virtual Swap Meeting</h3>
+                    <span style="font-size: 0.7rem;">{% for p in partners %}{{ p.first_name }}{% if not forloop.last %}, {% endif %}{% endfor %}</span>
+                {% else %}
+                    <h3>{{ partner.first_name }} {{ partner.last_name }}</h3>
+                    <span>
+                        {% if partner.is_online %}online{% else %}away{% endif %}
+                    </span>
+                {% endif %}
+            </div>
+        </div>
+        <div class="wa-header-right">
+            {% if not is_group %}
+                <a href="tel:{{ partner.phone_number }}"><i class="fas fa-phone-alt"></i></a>
+                <div class="wa-menu-wrap">
+                    <i class="fas fa-ellipsis-v" id="menu-toggle-chat" style="cursor:pointer;"></i>
+                    <div class="wa-dropdown" id="wa-dropdown">
+                        <form method="post" action="{% url 'messenger:block_user' partner.id %}">
+                            {% csrf_token %}
+                            <button type="submit" class="wa-dropdown-item">
+                                <i class="fas fa-ban"></i>
+                                {% if is_blocked_by_me %}Unblock {{ partner.first_name }}{% else %}Block {{ partner.first_name }}{% endif %}
+                            </button>
+                        </form>
+                        <button class="wa-dropdown-item" id="open-report-modal">
+                            <i class="fas fa-flag"></i>
+                            Report {{ partner.first_name }}
+                        </button>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- WhatsApp-style Body -->
+    <div class="whatsapp-body" id="chat-messages">
+        <div class="wa-date-chip"><span>TODAY</span></div>
+        
+        {% for msg in messages %}
+            <div class="wa-msg-row {% if msg.sender == request.user %}sent{% else %}received{% endif %}">
+                <div class="wa-bubble">
+                    {% if is_group and msg.sender != request.user %}
+                        <div style="font-size: 0.75rem; font-weight: 800; color: #c51f3d; margin-bottom: 2px;">{{ msg.sender.first_name }}</div>
+                    {% endif %}
+                    <p>{{ msg.text }}</p>
+                    <div class="wa-meta">
+                        <span>{{ msg.created_at|date:"H:i" }}</span>
+                        {% if msg.sender == request.user %}
+                            {% if msg.is_read %}
+                                <i class="fas fa-check-double tick-read" style="color: #53bdeb; margin-left: 4px;"></i>
+                            {% else %}
+                                <i class="fas fa-check-double tick-pending" style="color: #8696a0; margin-left: 4px;"></i>
+                            {% endif %}
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        {% empty %}
+            <div style="text-align: center; margin-top: 4rem;">
+                <p style="background: rgba(255,255,255,0.8); display: inline-block; padding: 0.5rem 1rem; border-radius: 10px; font-size: 0.85rem; color: #54656f;">Say hello to {{ partner.first_name }}! 👋</p>
+            </div>
+        {% endfor %}
+    </div>
+
+    {% if is_blocked %}
+    <!-- Blocked State -->
+    <div class="whatsapp-footer" style="text-align: center; padding: 1.25rem;">
+        <p style="color: #8696a0; font-size: 0.9rem; margin: 0;">
+            <i class="fas fa-ban" style="margin-right: 0.5rem;"></i>
+            {% if is_blocked_by_me %}
+                You blocked this contact.
+                <form method="post" action="{% url 'messenger:block_user' partner.id %}" style="display:inline;">
+                    {% csrf_token %}
+                    <button type="submit" style="background:none; border:none; color: #c51f3d; font-weight:700; cursor:pointer; font-family:inherit;">Unblock</button>
+                </form>
+            {% else %}
+                You can't send messages to this contact.
+            {% endif %}
+        </p>
+    </div>
+    {% else %}
+    <!-- WhatsApp-style Input -->
+    <div class="whatsapp-footer">
+        <div class="wa-input-form" id="chat-form">
+            <div class="wa-input-wrapper">
+                <i class="far fa-smile wa-icon"></i>
+                <input type="text" id="chat-input" placeholder="Message" autocomplete="off">
+                <i class="fas fa-paperclip wa-icon"></i>
+                <i class="fas fa-camera wa-icon"></i>
+            </div>
+            <button type="button" id="send-btn" class="wa-send-btn">
+                <i class="fas fa-paper-plane"></i>
+            </button>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+{% if not is_group %}
+<!-- Report Modal -->
+<div class="report-overlay" id="report-overlay">
+    <div class="report-modal">
+        <div class="report-modal-header">
+            <h3>Report {{ partner.first_name }}</h3>
+            <button id="close-report-modal" style="background:none; border:none; font-size:1.25rem; cursor:pointer; color: #54656f;">&times;</button>
+        </div>
+        <form method="post" action="{% url 'messenger:report_user' partner.id %}">
+            {% csrf_token %}
+            <div class="report-options">
+                <label class="report-option">
+                    <input type="radio" name="reason" value="SPAM" checked> Spam or scam
+                </label>
+                <label class="report-option">
+                    <input type="radio" name="reason" value="HARASSMENT"> Harassment or bullying
+                </label>
+                <label class="report-option">
+                    <input type="radio" name="reason" value="FAKE"> Fake profile
+                </label>
+                <label class="report-option">
+                    <input type="radio" name="reason" value="INAPPROPRIATE"> Inappropriate content
+                </label>
+                <label class="report-option">
+                    <input type="radio" name="reason" value="OTHER"> Other
+                </label>
+            </div>
+            <textarea name="details" placeholder="Add more details (optional)..." rows="3" style="width:100%; border:1px solid #e5e7eb; border-radius:12px; padding:0.75rem; font-family:inherit; resize:none; margin-top:1rem;"></textarea>
+            <div style="display:flex; gap:0.75rem; margin-top:1.25rem;">
+                <button type="button" id="cancel-report" style="flex:1; padding:0.75rem; border-radius:12px; border:1px solid #e5e7eb; background:white; font-weight:700; cursor:pointer;">Cancel</button>
+                <button type="submit" style="flex:1; padding:0.75rem; border-radius:12px; border:none; background:#c51f3d; color:white; font-weight:700; cursor:pointer;">Report</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endif %}
+
+<style>
+    /* Fullscreen WhatsApp Layout */
+    .chat-container-fullscreen {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: #efe7de; /* Classic WA Background */
+        display: flex;
+        flex-direction: column;
+        z-index: 2000;
+        font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    /* Header */
+    .whatsapp-header {
+        background: #c51f3d; /* Crimson instead of Teal */
+        color: white;
+        padding: 0.6rem 1rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    .wa-header-left { display: flex; align-items: center; gap: 0.75rem; }
+    .wa-back { color: white; text-decoration: none; font-size: 1.1rem; padding: 0.5rem; }
+    .wa-avatar { width: 40px; height: 40px; background: #e9edef; color: #54656f; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; }
+    .wa-info h3 { font-size: 1rem; margin: 0; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 150px; }
+    .wa-info span { font-size: 0.75rem; opacity: 0.9; }
+    .wa-header-right { display: flex; gap: 1.5rem; align-items: center; padding-right: 0.5rem; }
+    .wa-header-right i { font-size: 1.1rem; opacity: 0.9; cursor: pointer; }
+    .wa-header-right a { color: white; }
+
+    /* Body */
+    .whatsapp-body {
+        flex-grow: 1;
+        overflow-y: auto;
+        padding: 1rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+        background-image: url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png');
+        background-repeat: repeat;
+    }
+    .wa-date-chip { text-align: center; margin: 1rem 0; }
+    .wa-date-chip span { background: #fff; color: #54656f; font-size: 0.7rem; font-weight: 600; padding: 0.4rem 0.8rem; border-radius: 8px; box-shadow: 0 1px 1px rgba(0,0,0,0.1); }
+
+    .wa-msg-row { display: flex; width: 100%; margin-bottom: 2px; }
+    .wa-msg-row.sent { justify-content: flex-end; }
+    .wa-msg-row.received { justify-content: flex-start; }
+
+    .wa-bubble {
+        max-width: 85%;
+        padding: 0.5rem 0.75rem;
+        border-radius: 8px;
+        position: relative;
+        box-shadow: 0 1px 1px rgba(0,0,0,0.1);
+        font-size: 0.95rem;
+        color: #111b21;
+    }
+    .sent .wa-bubble { background: #d9fdd3; border-top-right-radius: 0; }
+    .received .wa-bubble { background: #ffffff; border-top-left-radius: 0; }
+
+    .wa-meta { display: flex; align-items: center; justify-content: flex-end; gap: 4px; margin-top: 2px; font-size: 0.65rem; color: #667781; }
+
+    /* Footer */
+    .whatsapp-footer {
+        padding: 0.6rem 1rem 1.8rem 1rem;
+        background: #f0f2f5;
+    }
+    .wa-input-form { 
+        display: flex; 
+        gap: 0.5rem; 
+        align-items: center; 
+    }
+    .wa-input-wrapper {
+        flex-grow: 1;
+        background: white;
+        border-radius: 24px;
+        display: flex;
+        align-items: center;
+        padding: 0.2rem 0.75rem;
+        gap: 0.75rem;
+        min-width: 0;
+    }
+    .wa-input-wrapper input {
+        flex-grow: 1;
+        border: none;
+        outline: none;
+        padding: 0.6rem 0;
+        font-size: 1rem;
+        background: transparent;
+    }
+    .wa-icon { color: #54656f; font-size: 1.2rem; cursor: pointer; }
+    .wa-send-btn {
+        width: 48px;
+        height: 48px;
+        background: #c51f3d; /* Crimson instead of Teal */
+        color: white;
+        border: none;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.2rem;
+        cursor: pointer;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+        flex-shrink: 0;
+    }
+    .wa-send-btn i {
+        margin-left: 2px; /* Visually center the plane icon */
+    }
+
+    /* Adjust for Desktop */
+    @media (min-width: 1024px) {
+        .chat-container-fullscreen {
+            position: relative;
+            height: calc(100vh - 180px);
+            border-radius: 24px;
+            overflow: hidden;
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+    }
+
+    /* Dropdown Menu */
+    .wa-menu-wrap { position: relative; }
+    .wa-dropdown {
+        display: none;
+        position: absolute;
+        top: 100%;
+        right: 0;
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+        min-width: 200px;
+        z-index: 100;
+        overflow: hidden;
+        margin-top: 0.5rem;
+    }
+    .wa-dropdown.active { display: block; }
+    .wa-dropdown-item {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.85rem 1.25rem;
+        border: none;
+        background: none;
+        width: 100%;
+        text-align: left;
+        font-family: inherit;
+        font-size: 0.9rem;
+        color: #111b21;
+        cursor: pointer;
+        transition: 0.15s;
+    }
+    .wa-dropdown-item:hover { background: #f5f6f6; }
+    .wa-dropdown-item i { color: #54656f; width: 18px; }
+
+    /* Report Modal */
+    .report-overlay {
+        display: none;
+        position: fixed;
+        top: 0; left: 0; right: 0; bottom: 0;
+        background: rgba(0,0,0,0.5);
+        z-index: 5000;
+        align-items: center;
+        justify-content: center;
+        padding: 1.5rem;
+    }
+    .report-overlay.active { display: flex; }
+    .report-modal {
+        background: white;
+        border-radius: 20px;
+        padding: 2rem;
+        max-width: 420px;
+        width: 100%;
+        box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+    }
+    .report-modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.5rem;
+    }
+    .report-modal-header h3 { font-size: 1.15rem; font-weight: 700; margin: 0; }
+    .report-options { display: flex; flex-direction: column; gap: 0.75rem; }
+    .report-option {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.75rem 1rem;
+        border: 1px solid #e5e7eb;
+        border-radius: 12px;
+        cursor: pointer;
+        font-size: 0.9rem;
+        transition: 0.2s;
+    }
+    .report-option:hover { border-color: #c51f3d; background: #fff5f5; }
+    .report-option input[type="radio"] { accent-color: #c51f3d; }
+</style>
+
+<script>
+    const chatMessages = document.getElementById('chat-messages');
+    const chatInput = document.getElementById('chat-input');
+    const sendBtn = document.getElementById('send-btn');
+    const userId = {{ request.user.id }};
+    const conversationId = {{ conversation.id }};
+
+    // Scroll to bottom on load
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+
+    // --- Dropdown & Report Modal ---
+    const menuToggle = document.getElementById('menu-toggle-chat');
+    const dropdown = document.getElementById('wa-dropdown');
+    const reportOverlay = document.getElementById('report-overlay');
+
+    if (menuToggle) {
+        menuToggle.addEventListener('click', (e) => {
+            e.stopPropagation();
+            dropdown.classList.toggle('active');
+        });
+    }
+
+    document.addEventListener('click', () => dropdown?.classList.remove('active'));
+
+    document.getElementById('open-report-modal')?.addEventListener('click', () => {
+        dropdown.classList.remove('active');
+        reportOverlay.classList.add('active');
+    });
+
+    document.getElementById('close-report-modal')?.addEventListener('click', () => {
+        reportOverlay.classList.remove('active');
+    });
+
+    document.getElementById('cancel-report')?.addEventListener('click', () => {
+        reportOverlay.classList.remove('active');
+    });
+
+    {% if not is_blocked %}
+    // --- WebSocket Chat ---
+    const wsProtocol = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
+    const chatSocket = new WebSocket(
+        wsProtocol + window.location.host + '/ws/chat/' + conversationId + '/'
+    );
+
+    chatSocket.onopen = () => {
+        console.log('WebSocket connected');
+    };
+
+    chatSocket.onmessage = (e) => {
+        const data = JSON.parse(e.data);
+
+        if (data.type === 'message') {
+            appendMessage(data.message, data.is_mine, data.timestamp, data.is_read);
+        }
+
+        if (data.type === 'read_receipt') {
+            document.querySelectorAll('.tick-pending').forEach(tick => {
+                tick.style.color = '#53bdeb';
+                tick.classList.remove('tick-pending');
+                tick.classList.add('tick-read');
+            });
+        }
+        
+        if (data.type === 'error') {
+            alert(data.message);
+            window.location.reload(); // Reload to show the blocked UI state
+        }
+    };
+
+    chatSocket.onclose = () => {
+        console.log('WebSocket disconnected. Reconnecting in 3s...');
+        setTimeout(() => window.location.reload(), 3000);
+    };
+
+    function appendMessage(text, isMine, timestamp, isRead) {
+        const row = document.createElement('div');
+        row.className = 'wa-msg-row ' + (isMine ? 'sent' : 'received');
+
+        const tickColor = isRead ? '#53bdeb' : '#8696a0';
+        const tickClass = isRead ? 'tick-read' : 'tick-pending';
+        const tickHtml = isMine
+            ? `<i class="fas fa-check-double ${tickClass}" style="color: ${tickColor}; margin-left: 4px;"></i>`
+            : '';
+
+        row.innerHTML = `
+            <div class="wa-bubble">
+                <p>${escapeHtml(text)}</p>
+                <div class="wa-meta">
+                    <span>${timestamp}</span>
+                    ${tickHtml}
+                </div>
+            </div>
+        `;
+        chatMessages.appendChild(row);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    function sendMessage() {
+        const text = chatInput.value.trim();
+        if (!text) return;
+
+        chatSocket.send(JSON.stringify({ message: text }));
+        chatInput.value = '';
+        chatInput.focus();
+    }
+
+    if (sendBtn) sendBtn.addEventListener('click', sendMessage);
+    if (chatInput) chatInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            sendMessage();
+        }
+    });
+    {% endif %}
+</script>
+{% endblock %}
