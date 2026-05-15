@@ -29,9 +29,9 @@ SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-8_c8pboff0849oqz#qx3@od)b4
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv('DEBUG', 'True') == 'True'
 
-ALLOWED_HOSTS = ['arhythmically-unciliated-danna.ngrok-free.dev', '127.0.0.1','204.48.21.77']
+ALLOWED_HOSTS = ['tscswap.com', 'www.tscswap.com', '204.48.21.77', '127.0.0.1','tscswap.com','www.tscswap.com']
 
-CSRF_TRUSTED_ORIGINS = ['https://arhythmically-unciliated-danna.ngrok-free.dev']
+CSRF_TRUSTED_ORIGINS = ['https://tscswap.com', 'https://www.tscswap.com']
 
 
 # Application definition
