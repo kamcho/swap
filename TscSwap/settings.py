@@ -29,7 +29,7 @@ SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-8_c8pboff0849oqz#qx3@od)b4
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv('DEBUG', 'True') == 'True'
 
-ALLOWED_HOSTS = ['arhythmically-unciliated-danna.ngrok-free.dev', '127.0.0.1']
+ALLOWED_HOSTS = ['arhythmically-unciliated-danna.ngrok-free.dev', '127.0.0.1','204.48.21.77']
 
 CSRF_TRUSTED_ORIGINS = ['https://arhythmically-unciliated-danna.ngrok-free.dev']
 
