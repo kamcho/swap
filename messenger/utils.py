@@ -175,41 +175,53 @@ def get_best_match(model, field, value, filters=None):
 
 def contains_phone_number(text):
     """
-    Detects potential phone numbers in text even if hidden by special characters, 
-    letters, or spelled out as words (English/Swahili).
+    Detects potential phone numbers in text while avoiding false positives 
+    from normal words like 'senior' or 'school'.
     """
     import re
-    # 1. Normalize lookalikes and number words
-    clean = text.lower().replace('o', '0').replace('i', '1').replace('l', '1')
     
-    # English words
-    words_en = {
+    # 1. First, check for obvious digit sequences (with common separators)
+    # This matches 07XXXXXXXX, 2547XXXXXXXX, etc.
+    obvious_pattern = r'(?:\+?254|0)[17](?:[ \-\.]?\d){8}'
+    if re.search(obvious_pattern, text):
+        return True
+
+    # 2. Check for hidden numbers (words or symbols)
+    # We only normalize if we see a high density of potential number words
+    clean = text.lower()
+    
+    # English/Swahili number words
+    words = {
         'zero': '0', 'one': '1', 'two': '2', 'three': '3', 'four': '4',
-        'five': '5', 'six': '6', 'seven': '7', 'eight': '8', 'nine': '9'
-    }
-    # Swahili words
-    words_sw = {
+        'five': '5', 'six': '6', 'seven': '7', 'eight': '8', 'nine': '9',
         'sifuri': '0', 'moja': '1', 'mbili': '2', 'tatu': '3', 'nne': '4',
         'tano': '5', 'sita': '6', 'saba': '7', 'nane': '8', 'tisa': '9'
     }
     
-    for word, digit in {**words_en, **words_sw}.items():
-        clean = clean.replace(word, digit)
-    
-    # 2. Remove EVERYTHING that is not a digit
-    digits_only = re.sub(r'\D', '', clean)
-    
-    # 3. Check if the resulting digit string contains a Kenyan phone pattern
-    patterns = [
-        r'(?:254|0)[17]\d{8}', # 07... or 2547...
-        r'[17]\d{8}',          # 7... (9 digits)
-        r'\d{9,13}'            # Generic 9-13 digit sequence
-    ]
-    
-    for pattern in patterns:
-        if re.search(pattern, digits_only):
-            return True
+    # Only replace words if they are actually present
+    word_count = 0
+    for word, digit in words.items():
+        if word in clean:
+            clean = clean.replace(word, digit)
+            word_count += 1
             
+    # 3. Look for digit clusters (ignoring small numbers like "level 1")
+    # We look for sequences of 8+ digits that might be separated by non-alphanumeric chars
+    # We do NOT replace 'o' or 'i' globally anymore as it breaks normal words.
+    
+    # Extract just the "number-like" parts of the string
+    potential_chunks = re.findall(r'(?:[\d\s\-\.\(\)]{8,})', clean)
+    for chunk in potential_chunks:
+        digits = re.sub(r'\D', '', chunk)
+        # Kenyan numbers are typically 10 digits (07...) or 12 digits (2547...)
+        if len(digits) >= 9 and len(digits) <= 13:
+            # Check if it starts with Kenyan prefixes
+            if digits.startswith('07') or digits.startswith('01') or digits.startswith('254'):
+                return True
+            # If it's just a long string of digits (like 712345678), block it too
+            if len(digits) == 9 and (digits.startswith('7') or digits.startswith('1')):
+                return True
+
     return False
 
 # --- TOOL HANDLERS ---
@@ -464,9 +476,9 @@ WHATSAPP NAME:
 """
 
 def process_whatsapp_message(phone_number, message_text, whatsapp_name=""):
-    # 0. Security Filter: Block phone numbers
-    if contains_phone_number(message_text):
-        return "Message blocked! Sharing phone numbers is strictly prohibited to avoid scams. A repeat violation will have your account burned (permanently banned) from our platform."
+    # 0. Security Filter: Block phone numbers (DISABLED AS REQUESTED)
+    # if contains_phone_number(message_text):
+    #     return "Message blocked! Sharing phone numbers is strictly prohibited to avoid scams. A repeat violation will have your account burned (permanently banned) from our platform."
 
     # 1. Get or Create User & Profile
     clean_whatsapp = phone_number.replace("+", "").replace(" ", "")
@@ -478,7 +490,7 @@ def process_whatsapp_message(phone_number, message_text, whatsapp_name=""):
         # Create new user with phone number as default password
         phone_for_db = f"254{last_9}"
         user = User.objects.create_user(phone_number=phone_for_db, password=phone_for_db)
-        TeacherProfile.objects.create(user=user, school_name="Not Set", level="PRIMARY")
+        TeacherProfile.objects.create(user=user)
     
     profile = user.profile
     state_obj, _ = WhatsAppState.objects.get_or_create(phone_number=phone_number)
@@ -490,7 +502,7 @@ def process_whatsapp_message(phone_number, message_text, whatsapp_name=""):
     profile_summary = f"""
     User: {user.first_name} {user.last_name}
     WhatsApp Name: {whatsapp_name}
-    School: {profile.school_name} ({profile.get_level_display()})
+    School: {profile.school_name if profile.school_name else 'Not Set'} ({profile.get_level_display() if profile.level else 'Not Set'})
     Location: {profile.county.name if profile.county else 'N/A'}, {profile.sub_county.name if profile.sub_county else 'N/A'}
     Subjects: {', '.join([ts.subject.name for ts in profile.teaching_subjects.all()])}
     Preferences: {', '.join([pl.county.name for pl in profile.preferred_locations.all()])}

@@ -71,8 +71,8 @@ class TeacherProfile(models.Model):
     ]
 
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
-    school_name = models.CharField(max_length=255)
-    level = models.CharField(max_length=20, choices=LEVEL_CHOICES)
+    school_name = models.CharField(max_length=255, null=True, blank=True)
+    level = models.CharField(max_length=20, choices=LEVEL_CHOICES, null=True, blank=True)
     
     # Current location
     county = models.ForeignKey('locations.County', on_delete=models.SET_NULL, null=True, related_name='teachers')
