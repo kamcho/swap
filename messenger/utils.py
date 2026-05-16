@@ -11,7 +11,7 @@ client = openai.OpenAI(api_key=settings.OPENAI_API_KEY)
 
 def send_whatsapp_message(to_phone, text, is_bulk=False, template_name=None, template_vars=None):
     """Sends a WhatsApp message via the Meta Graph API and logs it."""
-    # Normalize phone number (handle 07... -> 2547...)
+    # Normalize phone number
     clean_phone = str(to_phone).strip().replace("+", "").replace(" ", "")
     if clean_phone.startswith('0') and len(clean_phone) == 10:
         clean_phone = "254" + clean_phone[1:]
@@ -19,48 +19,76 @@ def send_whatsapp_message(to_phone, text, is_bulk=False, template_name=None, tem
     url = f"https://graph.facebook.com/v19.0/{settings.WHATSAPP_PHONE_NUMBER_ID}/messages"
     headers = {"Authorization": f"Bearer {settings.WHATSAPP_ACCESS_TOKEN}", "Content-Type": "application/json"}
     
-    if is_bulk and template_name:
-        components = []
-        if template_vars:
-            parameters = [{"type": "text", "text": str(v)} for v in template_vars]
-            components = [{"type": "body", "parameters": parameters}]
-            
-        payload = {
-            "messaging_product": "whatsapp",
-            "to": clean_phone,
-            "type": "template",
-            "template": {
-                "name": template_name,
-                "language": {"code": "en"},
-                "components": components
+    # If it's a template, we try common English codes as Meta can be picky
+    language_codes = ['en', 'en_US', 'en_GB'] if (is_bulk and template_name) else [None]
+    resp = None
+    
+    for lang_code in language_codes:
+        if is_bulk and template_name:
+            components = []
+            if template_vars:
+                parameters = []
+                for v in template_vars:
+                    if isinstance(v, dict) and 'name' in v:
+                        parameters.append({"type": "text", "text": str(v['value']), "parameter_name": v['name']})
+                    else:
+                        parameters.append({"type": "text", "text": str(v)})
+                components = [{"type": "body", "parameters": parameters}]
+                
+            payload = {
+                "messaging_product": "whatsapp",
+                "to": clean_phone,
+                "type": "template",
+                "template": {
+                    "name": template_name,
+                    "language": {"code": lang_code},
+                    "components": components
+                }
             }
-        }
-    else:
-        payload = {
-            "messaging_product": "whatsapp",
-            "to": clean_phone,
-            "type": "text",
-            "text": {"body": text}
-        }
-    
-    resp = requests.post(url, headers=headers, json=payload)
-    
+        else:
+            payload = {
+                "messaging_product": "whatsapp",
+                "to": clean_phone,
+                "type": "text",
+                "text": {"body": text}
+            }
+
+        try:
+            resp = requests.post(url, headers=headers, json=payload, timeout=15)
+            # If template exists in this language, we stop
+            if resp.status_code < 300:
+                break
+            # If it's specifically a "template doesn't exist" error, try next language
+            error_data = resp.json().get('error', {})
+            if error_data.get('code') == 132001:
+                continue
+            else:
+                break
+        except Exception:
+            if not resp: break # Connection error
+            break
+
     # Log the message
     try:
         from .models import WhatsAppMessageLog
         message_id = None
         status = 'sent'
-        if resp.status_code < 300:
+        log_text = text
+        
+        if resp and resp.status_code < 300:
             data = resp.json()
             if 'messages' in data and data['messages']:
                 message_id = data['messages'][0].get('id')
         else:
             status = 'failed'
+            # If it failed, append the error reason to the log text for the admin dashboard
+            error_info = resp.text if resp else "Connection Timeout"
+            log_text = f"{text}\n\nFAILED ({resp.status_code if resp else '??'}): {error_info}"
             
         WhatsAppMessageLog.objects.create(
             phone_number=clean_phone,
             message_id=message_id,
-            message_text=text,
+            message_text=log_text,
             direction='OUT',
             status=status,
             is_bulk=is_bulk
