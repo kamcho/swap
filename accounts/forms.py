@@ -16,6 +16,14 @@ class CustomUserCreationForm(forms.ModelForm):
         model = User
         fields = ('phone_number', 'email')
 
+    def clean_phone_number(self):
+        phone = self.cleaned_data.get('phone_number')
+        if phone:
+            phone = str(phone).strip().replace(" ", "").replace("+", "")
+            if phone.startswith('0') and len(phone) == 10:
+                phone = "254" + phone[1:]
+        return phone
+
     def save(self, commit=True):
         user = super().save(commit=False)
         user.set_password(self.cleaned_data["pin"])
@@ -26,6 +34,14 @@ class CustomUserCreationForm(forms.ModelForm):
 class CustomAuthenticationForm(AuthenticationForm):
     username = forms.CharField(label="Phone Number", widget=forms.TextInput(attrs={'placeholder': 'Enter your phone number'}))
     password = forms.CharField(label="PIN", widget=forms.PasswordInput(attrs={'placeholder': 'Enter PIN'}))
+
+    def clean_username(self):
+        username = self.cleaned_data.get('username')
+        if username:
+            username = str(username).strip().replace(" ", "").replace("+", "")
+            if username.startswith('0') and len(username) == 10:
+                username = "254" + username[1:]
+        return username
 
 class PersonalInfoForm(forms.ModelForm):
     first_name = forms.CharField(max_length=30, widget=forms.TextInput(attrs={'placeholder': 'First Name'}))

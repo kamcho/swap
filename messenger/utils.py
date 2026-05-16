@@ -20,7 +20,7 @@ def send_whatsapp_message(to_phone, text, is_bulk=False, template_name=None, tem
     headers = {"Authorization": f"Bearer {settings.WHATSAPP_ACCESS_TOKEN}", "Content-Type": "application/json"}
     
     # If it's a template, we try common English codes as Meta can be picky
-    language_codes = ['en', 'en_US', 'en_GB'] if (is_bulk and template_name) else [None]
+    language_codes = ['en_GB', 'en', 'en_US'] if (is_bulk and template_name) else [None]
     resp = None
     
     for lang_code in language_codes:
