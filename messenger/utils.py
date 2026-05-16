@@ -397,11 +397,15 @@ def mask_phone(phone):
 def handle_get_matches(profile, phone_number, temporary_counties=None):
     from accounts.services import get_potential_matches, get_triangle_matches
     
+    # Enforce 3-county limit for searches
+    if temporary_counties:
+        temporary_counties = temporary_counties[:3]
+
     direct = get_potential_matches(profile, override_counties=temporary_counties)
     triangles = get_triangle_matches(profile, override_counties=temporary_counties)
     
     if not direct and not triangles:
-        return "No matches found yet. Keep your profile updated!"
+        return "No matches found for your criteria yet. However, you shouldn't worry as new teachers register each and every day. When a potential swap is found you will be contacted automatically, but you are free to check for new possibilities daily!"
     
     # Build match registry to store server-side (phone numbers never sent to AI)
     match_registry = {}
@@ -539,6 +543,7 @@ MATCHING:
         2. **Search Other Separately**: Provide new counties and search ONLY in those. (Use `temporary_counties` tool parameter).
         3. **Search All Together**: Combine saved locations with new ones for a broader search. (Use `temporary_counties` tool parameter).
     - **WAIT** for the user's explicit choice.
+    - **SEARCH LIMITS**: Explicitly tell the user that **search is limited to a maximum of 3 counties** (either their saved ones or new temporary ones). If they provide more than 3, inform them you will only search the first 3. Do **NOT** perform a search on all counties even if the user asks.
     - **ACTION**: Once they choose, **CALL the `get_matches` tool immediately**. DO NOT say "One moment" or "Searching..." without calling the tool. 
     - **PERMANENCE**: Do **NOT** use `handle_set_preferences` unless the user explicitly says "Update my saved preferences" or "Save these for future searches". For one-time explorations, use the `temporary_counties` parameter in `get_matches`.
 - MATCH SELECTION: If matches are found, present them clearly with their MATCH_ID numbers. **Ask which ones they are interested in pursuing.** They can choose multiple.
