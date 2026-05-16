@@ -218,10 +218,10 @@ def bulk_onboard(request):
             state.save()
             
             # 4. Craft message
-            name = entry.get('name', '').strip()
+            name = (entry.get('name') or '').strip()
             salutation = f"Hi {name}" if name else "Hi there"
-            current = entry.get('current_location', 'your current station')
-            preferred = entry.get('preferred_location', 'a new location')
+            current = entry.get('current_location') or 'your current station'
+            preferred = entry.get('preferred_location') or 'a new location'
             
             msg = f"{salutation} — this is SwapMate. You recently expressed interest in finding a teaching position swap from *{current}* → *{preferred}*.\n\n"
             msg += "We're onboarding teachers now to build match lists. Reply *START* to continue.\n\n"
