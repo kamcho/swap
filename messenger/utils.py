@@ -234,30 +234,33 @@ TOOLS = [
 # --- FUZZY SEARCH HELPERS ---
 
 def get_best_match(model, field, value, filters=None):
-    """Simple fuzzy search using icontains and basic score."""
+    """Fuzzy search using difflib for handling typos and apostrophes (e.g. Muranga -> Murang'a)."""
     if not value: return None
     value = str(value).strip()
     qs = model.objects.all()
     if filters:
         qs = qs.filter(**filters)
     
-    # Try variations
-    search_terms = [value]
-    if 'county' in value.lower():
-        search_terms.append(value.lower().replace('county', '').strip())
+    # 1. Try variations (strip 'county', etc.)
+    clean_val = value.lower().replace('county', '').strip()
+    search_terms = [value, clean_val, clean_val.replace("'", "")]
     
     for term in search_terms:
         # Try exact match first
         exact = qs.filter(**{f"{field}__iexact": term}).first()
         if exact: return exact
+    
+    # 2. If no exact match, use difflib to find the closest string
+    all_names = list(qs.values_list(field, flat=True))
+    import difflib
+    matches = difflib.get_close_matches(clean_val, all_names, n=1, cutoff=0.6)
+    
+    if not matches:
+        # Try one more time with the original value
+        matches = difflib.get_close_matches(value, all_names, n=1, cutoff=0.6)
         
-        # Try startswith
-        sw = qs.filter(**{f"{field}__istartswith": term}).first()
-        if sw: return sw
-        
-        # Try icontains
-        ic = qs.filter(**{f"{field}__icontains": term}).first()
-        if ic: return ic
+    if matches:
+        return qs.filter(**{f"{field}__iexact": matches[0]}).first()
     
     return None
 
@@ -530,7 +533,8 @@ BEHAVIOR:
 - Be professional, polite, and encouraging.
 - Ask questions in SMALL STEPS. Do not ask for everything at once.
 - If the user provides info, use the tools to save it immediately.
-- Use 'fuzzu search' context: if a user mispells a school or location, confirm it with them.
+- Use 'fuzzy search' context: if a user mispells a school or location, confirm it with them.
+- **PRIVACY REASSURANCE**: When asking for the **School Name**, if the user seems hesitant or paranoid, explicitly reassure them: "Your school information is kept strictly private and is never shared with other teachers. We only use it for internal verification to protect the platform from scams and ensure all users are genuine teachers."
 - **ONCE COMPLETE**: Show them a clear summary of their information (from CURRENT PROFILE below) and ask if they want to edit anything.
 - If they want to edit, simply ask what they want to change and use the tools.
 
