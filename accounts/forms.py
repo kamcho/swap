@@ -1,5 +1,6 @@
 from django import forms
 from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
+from django.contrib.auth import authenticate
 from .models import User, TeacherProfile, Subject
 from django.core.validators import RegexValidator
 
@@ -35,13 +36,36 @@ class CustomAuthenticationForm(AuthenticationForm):
     username = forms.CharField(label="Phone Number", widget=forms.TextInput(attrs={'placeholder': 'Enter your phone number'}))
     password = forms.CharField(label="PIN", widget=forms.PasswordInput(attrs={'placeholder': 'Enter PIN'}))
 
-    def clean_username(self):
+    def clean(self):
         username = self.cleaned_data.get('username')
-        if username:
-            username = str(username).strip().replace(" ", "").replace("+", "")
-            if username.startswith('0') and len(username) == 10:
-                username = "254" + username[1:]
-        return username
+        password = self.cleaned_data.get('password')
+
+        if username and password:
+            # Clean the input
+            raw_phone = str(username).strip().replace(" ", "").replace("+", "")
+            
+            # Generate variations
+            variations = []
+            if raw_phone.startswith('254') and len(raw_phone) == 12:
+                variations = [raw_phone, "0" + raw_phone[3:]]
+            elif raw_phone.startswith('0') and len(raw_phone) == 10:
+                variations = ["254" + raw_phone[1:], raw_phone]
+            else:
+                variations = [raw_phone]
+
+            # Try authenticating with each variation
+            self.user_cache = None
+            for v in variations:
+                self.user_cache = authenticate(self.request, username=v, password=password)
+                if self.user_cache:
+                    break
+            
+            if self.user_cache is None:
+                raise self.get_invalid_login_error()
+            else:
+                self.confirm_login_allowed(self.user_cache)
+
+        return self.cleaned_data
 
 class PersonalInfoForm(forms.ModelForm):
     first_name = forms.CharField(max_length=30, widget=forms.TextInput(attrs={'placeholder': 'First Name'}))

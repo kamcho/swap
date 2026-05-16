@@ -27,8 +27,9 @@
                         <span class="wa-name">{{ contact.name }}</span>
                         <span class="wa-time">{{ contact.latest|date:"H:i" }}</span>
                     </div>
-                    <div class="wa-phone-row">
+                    <div class="wa-phone-row" style="display: flex; justify-content: space-between; align-items: center;">
                         <span class="wa-phone">{{ contact.phone }}</span>
+                        <span class="wa-msg-badge">{{ contact.msg_count }}</span>
                     </div>
                     <p class="wa-preview">{{ contact.preview }}</p>
                 </div>
@@ -150,6 +151,19 @@
     .wa-name { color: #e9edef; font-weight: 600; font-size: 0.95rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .wa-phone-row { margin-bottom: 0.25rem; }
     .wa-phone { color: #8696a0; font-size: 0.8rem; font-weight: 500; }
+    .wa-msg-badge { 
+        background: var(--primary); 
+        color: white; 
+        font-size: 0.7rem; 
+        font-weight: 700; 
+        min-width: 18px; 
+        height: 18px; 
+        border-radius: 10px; 
+        display: flex; 
+        align-items: center; 
+        justify-content: center; 
+        padding: 0 5px;
+    }
     .wa-time { color: #8696a0; font-size: 0.75rem; }
     .wa-preview { color: #8696a0; font-size: 0.85rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 

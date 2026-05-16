@@ -297,11 +297,13 @@ def whatsapp_admin(request):
     
     contacts = []
     from accounts.models import User
+    from django.db.models import Count
     for c in contacts_raw:
         phone = c['phone_number']
-        last_msg = WhatsAppInteraction.objects.filter(
-            phone_number=phone
-        ).order_by('-created_at').first()
+        # Efficiently get last message and total count
+        interactions_query = WhatsAppInteraction.objects.filter(phone_number=phone)
+        last_msg = interactions_query.order_by('-created_at').first()
+        msg_count = interactions_query.count()
         
         # Try to find associated user for completion score
         clean_phone = phone.replace("+", "").replace(" ", "")
@@ -319,6 +321,7 @@ def whatsapp_admin(request):
             'phone': phone,
             'name': name,
             'completion': completion,
+            'msg_count': msg_count,
             'latest': c['latest_activity'],
             'preview': last_msg.ai_response[:30] + "..." if last_msg and last_msg.ai_response else "No message"
         })
