@@ -11,11 +11,16 @@ client = openai.OpenAI(api_key=settings.OPENAI_API_KEY)
 
 def send_whatsapp_message(to_phone, text):
     """Sends a WhatsApp message via the Meta Graph API."""
+    # Normalize phone number (handle 07... -> 2547...)
+    clean_phone = str(to_phone).strip().replace("+", "").replace(" ", "")
+    if clean_phone.startswith('0') and len(clean_phone) == 10:
+        clean_phone = "254" + clean_phone[1:]
+    
     url = f"https://graph.facebook.com/v19.0/{settings.WHATSAPP_PHONE_NUMBER_ID}/messages"
     headers = {"Authorization": f"Bearer {settings.WHATSAPP_ACCESS_TOKEN}", "Content-Type": "application/json"}
     payload = {
         "messaging_product": "whatsapp",
-        "to": to_phone,
+        "to": clean_phone,
         "type": "text",
         "text": {"body": text}
     }
@@ -467,7 +472,7 @@ MATCHING:
 - MATCH SELECTION: If matches are found, present them clearly with their MATCH_ID numbers. **Ask which ones they are interested in pursuing.** They can choose multiple.
 - CONFIRMATION: If a user expresses interest in one or more matches:
     1. **CALL the `create_meeting_chat` tool** with the MATCH_ID numbers of the selected partners.
-    2. Tell the user: "We have successfully opened a chat for you with your potential swap partners. You can now discuss the swap details and get to know each other. Once you are both ready, the SwapMate team will invite you to a virtual meeting where we will verify all information before you proceed to the official TSC portal."
+    2. Tell the user: "We have successfully opened a chat for you with your potential swap partners. You can now discuss the swap details here: https://tscswap.com/messenger/inbox/\n\nOnce you are both ready, the SwapMate team will invite you to a virtual meeting to verify all information before you proceed to the official TSC portal."
 - LEGAL/PROCEDURAL: **NEVER** tell a user they are 'relocating' or that the swap is 'finalized'. We do NOT process transfers; only the **TSC (Teachers Service Commission)** does that. 
 - PRIVACY: Phone numbers are already masked in match results. Just display them as shown. **STRICT RULE:** Do NOT share your own phone number and do NOT ask users for theirs. Sharing of phone numbers is strictly prohibited to avoid scams. If a user tries to share a number, warn them that their account may be burned (permanently banned).
 - MINIMALISM: Keep responses short and to the point. **DO NOT use asterisks (*) for bold or italic emphasis in text.** Only use asterisks for masking phone numbers as required. Keep text clean and plain.

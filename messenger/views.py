@@ -181,7 +181,10 @@ def bulk_onboard(request):
         print(f"DEBUG: Parsed {len(parsed_entries)} entries from AI: {parsed_entries}")
         
         def process_entry(entry):
-            phone = str(entry.get('phone_number', ''))
+            phone = str(entry.get('phone_number', '')).strip().replace("+", "").replace(" ", "")
+            if phone.startswith('0') and len(phone) == 10:
+                phone = "254" + phone[1:]
+                
             if not phone:
                 return None
             
