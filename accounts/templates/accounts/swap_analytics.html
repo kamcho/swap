@@ -1,0 +1,129 @@
+{% extends 'core/base_app.html' %}
+{% load static %}
+
+{% block title %}Swap Analytics - SwapMate AI{% endblock %}
+
+{% block content %}
+<div class="db-welcome" style="margin-bottom: 2rem;">
+    <h1 style="font-size: 2rem; font-weight: 800;">Swap Analytics</h1>
+    <p style="color: var(--text-muted);">In-depth data visualization across school levels.</p>
+</div>
+
+<!-- Level Tabs -->
+<div class="analytics-tabs" style="display: flex; gap: 1rem; margin-bottom: 2.5rem; background: #f0f2f5; padding: 0.5rem; border-radius: 12px; width: fit-content;">
+    <a href="?level=PRIMARY" class="analytics-tab {% if selected_level == 'PRIMARY' %}active{% endif %}">Primary School</a>
+    <a href="?level=JSS" class="analytics-tab {% if selected_level == 'JSS' %}active{% endif %}">Junior Secondary (JSS)</a>
+    <a href="?level=SENIOR" class="analytics-tab {% if selected_level == 'SENIOR' %}active{% endif %}">Senior School</a>
+</div>
+
+<div class="analytics-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 2rem;">
+    
+    <!-- Top Current Counties -->
+    <div class="db-card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+            <h3 style="font-size: 1.1rem; font-weight: 800; color: var(--text-dark);">Top Current Locations</h3>
+            <span style="font-size: 0.75rem; font-weight: 700; color: var(--primary); background: #fff5f6; padding: 4px 10px; border-radius: 20px;">COUNTY</span>
+        </div>
+        <div class="chart-container">
+            {% for item in top_current %}
+            <div class="chart-row">
+                <div class="chart-label">{{ item.county__name }}</div>
+                <div class="chart-bar-wrap">
+                    <div class="chart-bar" style="width: {{ item.count }}%;"></div>
+                </div>
+                <div class="chart-value">{{ item.count }}</div>
+            </div>
+            {% empty %}
+            <p style="text-align: center; color: var(--text-muted); padding: 2rem;">No data available for this level.</p>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Top Preferred Counties -->
+    <div class="db-card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+            <h3 style="font-size: 1.1rem; font-weight: 800; color: var(--text-dark);">Top Swap Destinations</h3>
+            <span style="font-size: 0.75rem; font-weight: 700; color: #128c7e; background: #e6f4f2; padding: 4px 10px; border-radius: 20px;">DEMAND</span>
+        </div>
+        <div class="chart-container">
+            {% for item in top_preferred %}
+            <div class="chart-row">
+                <div class="chart-label">{{ item.county__name }}</div>
+                <div class="chart-bar-wrap">
+                    <div class="chart-bar pref" style="width: {{ item.count }}%;"></div>
+                </div>
+                <div class="chart-value">{{ item.count }}</div>
+            </div>
+            {% empty %}
+            <p style="text-align: center; color: var(--text-muted); padding: 2rem;">No data available for this level.</p>
+            {% endfor %}
+        </div>
+    </div>
+
+    {% if selected_level != 'PRIMARY' %}
+    <!-- Top Subjects (Only for JSS/Senior) -->
+    <div class="db-card" style="grid-column: span 1;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+            <h3 style="font-size: 1.1rem; font-weight: 800; color: var(--text-dark);">Top Teaching Subjects</h3>
+            <span style="font-size: 0.75rem; font-weight: 700; color: #4f46e5; background: #eef2ff; padding: 4px 10px; border-radius: 20px;">SUBJECTS</span>
+        </div>
+        <div class="chart-container">
+            {% for item in top_subjects %}
+            <div class="chart-row">
+                <div class="chart-label">{{ item.subject__name }}</div>
+                <div class="chart-bar-wrap">
+                    <div class="chart-bar sub" style="width: {{ item.count }}%;"></div>
+                </div>
+                <div class="chart-value">{{ item.count }}</div>
+            </div>
+            {% empty %}
+            <p style="text-align: center; color: var(--text-muted); padding: 2rem;">No data available for this level.</p>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Overall Participation -->
+    <div class="db-card">
+        <h3 style="font-size: 1.1rem; font-weight: 800; color: var(--text-dark); margin-bottom: 1.5rem;">Participation Share</h3>
+        <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+            {% for level_item in all_levels %}
+            <div style="display: flex; align-items: center; justify-content: space-between;">
+                <div style="display: flex; align-items: center; gap: 1rem;">
+                    <div style="width: 12px; height: 12px; border-radius: 50%; 
+                        {% if level_item.level == 'PRIMARY' %}background: var(--primary);
+                        {% elif level_item.level == 'JSS' %}background: #128c7e;
+                        {% else %}background: #4f46e5;{% endif %}"></div>
+                    <span style="font-weight: 600;">{{ level_item.level }}</span>
+                </div>
+                <span style="font-weight: 800; color: var(--text-dark);">{{ level_item.count }} Teachers</span>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+</div>
+
+<style>
+    .analytics-tab {
+        padding: 0.75rem 1.5rem;
+        border-radius: 8px;
+        text-decoration: none;
+        color: var(--text-muted);
+        font-weight: 700;
+        font-size: 0.9rem;
+        transition: 0.3s;
+    }
+    .analytics-tab:hover { background: #fff; color: var(--text-dark); }
+    .analytics-tab.active { background: white; color: var(--primary); box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }
+
+    .chart-container { display: flex; flex-direction: column; gap: 1.25rem; }
+    .chart-row { display: flex; align-items: center; gap: 1rem; }
+    .chart-label { width: 120px; font-size: 0.8rem; font-weight: 600; color: var(--text-dark); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .chart-bar-wrap { flex: 1; height: 8px; background: #f0f2f5; border-radius: 4px; overflow: hidden; }
+    .chart-bar { height: 100%; background: var(--primary); border-radius: 4px; }
+    .chart-bar.pref { background: #128c7e; }
+    .chart-bar.sub { background: #4f46e5; }
+    .chart-value { width: 30px; font-size: 0.8rem; font-weight: 800; color: var(--text-dark); text-align: right; }
+</style>
+{% endblock %}

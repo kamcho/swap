@@ -29,7 +29,14 @@
                     </div>
                     <div class="wa-phone-row" style="display: flex; justify-content: space-between; align-items: center;">
                         <span class="wa-phone">{{ contact.phone }}</span>
-                        <span class="wa-msg-badge">{{ contact.msg_count }}</span>
+                        <div style="display: flex; gap: 4px; align-items: center;">
+                            {% if contact.expects_reply %}
+                                <span class="wa-awaiting-badge" title="Awaiting user response">
+                                    <i class="fas fa-clock"></i>
+                                </span>
+                            {% endif %}
+                            <span class="wa-msg-badge">{{ contact.msg_count }}</span>
+                        </div>
                     </div>
                     <p class="wa-preview">{{ contact.preview }}</p>
                 </div>
@@ -69,7 +76,18 @@
                     <div class="wa-msg-row bot">
                         <div class="wa-bubble bot">
                             {{ msg.ai_response }}
-                            <span class="wa-msg-time">{{ msg.created_at|date:"H:i" }}</span>
+                            <span class="wa-msg-time">
+                                {{ msg.created_at|date:"H:i" }}
+                                {% if msg.status == 'sent' %}
+                                    <i class="fas fa-check wa-status-icon"></i>
+                                {% elif msg.status == 'delivered' %}
+                                    <i class="fas fa-check-double wa-status-icon"></i>
+                                {% elif msg.status == 'read' %}
+                                    <i class="fas fa-check-double wa-status-icon read"></i>
+                                {% elif msg.status == 'failed' %}
+                                    <i class="fas fa-exclamation-circle wa-status-icon failed"></i>
+                                {% endif %}
+                            </span>
                         </div>
                     </div>
                 {% endfor %}
@@ -164,6 +182,17 @@
         justify-content: center; 
         padding: 0 5px;
     }
+    .wa-awaiting-badge {
+        background: #e67e22;
+        color: white;
+        font-size: 0.65rem;
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
     .wa-time { color: #8696a0; font-size: 0.75rem; }
     .wa-preview { color: #8696a0; font-size: 0.85rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
@@ -189,7 +218,10 @@
     .wa-bubble.user { background: #005c4b; color: #e9edef; border-top-right-radius: 2px; }
     .wa-bubble.bot { background: #202c33; color: #e9edef; border-top-left-radius: 2px; }
     
-    .wa-msg-time { display: block; font-size: 0.7rem; color: #8696a0; margin-top: 0.25rem; text-align: right; }
+    .wa-msg-time { display: flex; align-items: center; justify-content: flex-end; gap: 4px; font-size: 0.7rem; color: #8696a0; margin-top: 0.25rem; }
+    .wa-status-icon { font-size: 0.75rem; }
+    .wa-status-icon.read { color: #53bdeb; }
+    .wa-status-icon.failed { color: #f15c5c; }
 
     .wa-no-selection { flex: 1; display: flex; align-items: center; justify-content: center; text-align: center; color: #8696a0; }
     .wa-intro i { font-size: 5rem; margin-bottom: 2rem; color: #25d366; opacity: 0.5; }

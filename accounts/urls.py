@@ -17,6 +17,7 @@ urlpatterns = [
     path('staff-dashboard/', views.staff_dashboard, name='staff_dashboard'),
     path('staff/mutuals/', views.admin_mutual_matches, name='admin_mutual_matches'),
     path('staff/triangles/', views.admin_triangle_matches, name='admin_triangle_matches'),
+    path('staff/analytics/', views.swap_analytics, name='swap_analytics'),
     path('profile/<int:profile_id>/', views.teacher_profile, name='teacher_profile'),
     path('find-swaps/', views.find_swaps, name='find_swaps'),
 ]

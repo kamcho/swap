@@ -159,6 +159,43 @@ def teacher_profile(request, profile_id):
     })
 
 @login_required
+def swap_analytics(request):
+    if not request.user.is_staff:
+        return redirect('accounts:dashboard')
+    
+    from django.db.models import Count
+    from locations.models import County
+    from .models import TeacherProfile, TeacherSubject, Subject, PreferredLocation
+    
+    level = request.GET.get('level', 'PRIMARY')
+    
+    # Base query
+    profiles = TeacherProfile.objects.filter(level=level)
+    
+    # 1. Top Current Counties
+    top_current = profiles.values('county__name').annotate(count=Count('id')).order_by('-count')[:10]
+    
+    # 2. Top Preferred Counties
+    top_preferred = PreferredLocation.objects.filter(profile__level=level).values('county__name').annotate(count=Count('id')).order_by('-count')[:10]
+    
+    # 3. Top Subjects (Only for JSS/Senior)
+    top_subjects = []
+    if level in ['JSS', 'SENIOR']:
+        top_subjects = TeacherSubject.objects.filter(profile__level=level).values('subject__name').annotate(count=Count('id')).order_by('-count')[:10]
+        
+    # 4. Level Distribution for Sidebar/Tabs
+    all_levels = TeacherProfile.objects.values('level').annotate(count=Count('id'))
+    
+    context = {
+        'selected_level': level,
+        'top_current': top_current,
+        'top_preferred': top_preferred,
+        'top_subjects': top_subjects,
+        'all_levels': all_levels,
+    }
+    return render(request, 'accounts/swap_analytics.html', context)
+
+@login_required
 def staff_dashboard(request):
     if not request.user.is_staff:
         return redirect('accounts:dashboard')

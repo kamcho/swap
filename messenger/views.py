@@ -43,10 +43,19 @@ def whatsapp_webhook(request):
                 mark_message_as_read(message_id)
                 
                 # Process with AI
-                reply_text = process_whatsapp_message(phone_number, message_text, whatsapp_name=whatsapp_name)
+                reply_text, interaction = process_whatsapp_message(phone_number, message_text, whatsapp_name=whatsapp_name)
                 
                 # 3. Send reply back
-                send_whatsapp_message(phone_number, reply_text)
+                resp = send_whatsapp_message(phone_number, reply_text)
+                if resp and resp.status_code < 300:
+                    try:
+                        data = resp.json()
+                        if 'messages' in data and data['messages']:
+                            msg_id = data['messages'][0].get('id')
+                            interaction.message_id = msg_id
+                            interaction.save()
+                    except Exception:
+                        pass
                 
             elif 'statuses' in value:
                 # Handle read receipts / delivery statuses
@@ -54,8 +63,9 @@ def whatsapp_webhook(request):
                 msg_id = status_obj.get('id')
                 status = status_obj.get('status') # sent, delivered, read, failed
                 if msg_id and status:
-                    from .models import WhatsAppMessageLog
+                    from .models import WhatsAppMessageLog, WhatsAppInteraction
                     WhatsAppMessageLog.objects.filter(message_id=msg_id).update(status=status)
+                    WhatsAppInteraction.objects.filter(message_id=msg_id).update(status=status)
             
         except (KeyError, IndexError):
             pass
@@ -94,7 +104,7 @@ def chat_simulator(request):
         phone = data.get('phone', '')
         message = data.get('message', '')
         whatsapp_name = data.get('whatsapp_name', 'Test User')
-        reply = process_whatsapp_message(phone, message, whatsapp_name=whatsapp_name)
+        reply, _ = process_whatsapp_message(phone, message, whatsapp_name=whatsapp_name)
         return JsonResponse({"reply": reply})
     return render(request, 'messenger/simulator.html')
 
@@ -280,13 +290,23 @@ def whatsapp_admin(request):
         reply_text = request.POST.get('reply_text')
         if reply_text:
             # 1. Send via WhatsApp API
-            send_whatsapp_message(selected_phone, reply_text)
+            resp = send_whatsapp_message(selected_phone, reply_text)
             
+            message_id = None
+            if resp and resp.status_code < 300:
+                try:
+                    data = resp.json()
+                    if 'messages' in data and data['messages']:
+                        message_id = data['messages'][0].get('id')
+                except: pass
+
             # 2. Log as a manual interaction
             WhatsAppInteraction.objects.create(
                 phone_number=selected_phone,
                 user_message="[Staff Reply]",
-                ai_response=reply_text
+                ai_response=reply_text,
+                message_id=message_id,
+                status='sent' if message_id else 'failed'
             )
             return redirect(f"{request.path}?phone={selected_phone}")
     
@@ -310,6 +330,10 @@ def whatsapp_admin(request):
         last_9 = clean_phone[-9:]
         user = User.objects.filter(Q(phone_number__contains=last_9)).first()
         
+        # Get current state for expects_reply
+        from .models import WhatsAppState
+        state, _ = WhatsAppState.objects.get_or_create(phone_number=phone)
+        
         name = "Unknown Teacher"
         completion = 0
         if user:
@@ -323,6 +347,7 @@ def whatsapp_admin(request):
             'completion': completion,
             'msg_count': msg_count,
             'latest': c['latest_activity'],
+            'expects_reply': state.expects_reply,
             'preview': last_msg.ai_response[:30] + "..." if last_msg and last_msg.ai_response else "No message"
         })
     

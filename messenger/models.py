@@ -74,18 +74,30 @@ class Report(models.Model):
         ordering = ['-created_at']
 
 class WhatsAppInteraction(models.Model):
+    STATUS_CHOICES = (
+        ('sent', 'Sent'),
+        ('delivered', 'Delivered'),
+        ('read', 'Read'),
+        ('failed', 'Failed'),
+    )
     phone_number = models.CharField(max_length=20)
+    message_id = models.CharField(max_length=255, unique=True, null=True, blank=True)
     user_message = models.TextField()
     ai_response = models.TextField()
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='sent')
+    expects_reply = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return f"Interaction with {self.phone_number} at {self.created_at}"
+        return f"Interaction with {self.phone_number} at {self.created_at} - {self.status}"
 
 class WhatsAppState(models.Model):
     phone_number = models.CharField(max_length=20, unique=True)
     state = models.CharField(max_length=50, default='START') # START, ONBOARDING, IDLE
     is_opted_out = models.BooleanField(default=False)
+    expects_reply = models.BooleanField(default=False)
+    nudge_count = models.IntegerField(default=0)
     context_data = models.JSONField(default=dict) # To store temporary registration data
     updated_at = models.DateTimeField(auto_now=True)
 

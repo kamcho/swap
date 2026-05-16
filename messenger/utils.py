@@ -570,6 +570,10 @@ CRITICAL RULE FOR create_meeting_chat:
 
 WHATSAPP NAME:
 - If 'WhatsApp Name' is provided and the official name is NOT set, address the user as that name until they provide their official name.
+
+- RESPONSE FORMAT: Your final response to the user must always be preceded by a status flag indicating if you are waiting for an answer. 
+  - Format: [EXPECTS_REPLY: TRUE] your message here (if you asked a question or need info).
+  - Format: [EXPECTS_REPLY: FALSE] your message here (if you are just being polite, ending a task, or closing the conversation).
 """
 
 def process_whatsapp_message(phone_number, message_text, whatsapp_name=""):
@@ -698,14 +702,26 @@ def process_whatsapp_message(phone_number, message_text, whatsapp_name=""):
         print(f"AI Error Traceback: {traceback.format_exc()}")
         reply_text = f"I'm having a bit of trouble processing that. (Error: {str(e)[:50]}...)"
 
+    # 5.5 Parse Expects Reply Flag
+    expects_reply = True # Default
+    if "[EXPECTS_REPLY:" in reply_text:
+        if "[EXPECTS_REPLY: FALSE]" in reply_text:
+            expects_reply = False
+        reply_text = reply_text.replace("[EXPECTS_REPLY: TRUE]", "").replace("[EXPECTS_REPLY: FALSE]", "").strip()
+
     # 6. Save Interaction & State
-    WhatsAppInteraction.objects.create(
+    interaction = WhatsAppInteraction.objects.create(
         phone_number=phone_number,
         user_message=message_text,
-        ai_response=reply_text
+        ai_response=reply_text,
+        expects_reply=expects_reply
     )
     
-    return reply_text
+    # Update State
+    state_obj.expects_reply = expects_reply
+    state_obj.save()
+    
+    return reply_text, interaction
 
 def parse_bulk_onboarding_data(text):
     """Uses GPT to parse unstructured text into a list of structured user data."""
