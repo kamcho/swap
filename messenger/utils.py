@@ -9,7 +9,7 @@ from .models import WhatsAppInteraction, WhatsAppState
 
 client = openai.OpenAI(api_key=settings.OPENAI_API_KEY)
 
-def send_whatsapp_message(to_phone, text, is_bulk=False):
+def send_whatsapp_message(to_phone, text, is_bulk=False, template_name=None, template_vars=None):
     """Sends a WhatsApp message via the Meta Graph API and logs it."""
     # Normalize phone number (handle 07... -> 2547...)
     clean_phone = str(to_phone).strip().replace("+", "").replace(" ", "")
@@ -18,12 +18,30 @@ def send_whatsapp_message(to_phone, text, is_bulk=False):
     
     url = f"https://graph.facebook.com/v19.0/{settings.WHATSAPP_PHONE_NUMBER_ID}/messages"
     headers = {"Authorization": f"Bearer {settings.WHATSAPP_ACCESS_TOKEN}", "Content-Type": "application/json"}
-    payload = {
-        "messaging_product": "whatsapp",
-        "to": clean_phone,
-        "type": "text",
-        "text": {"body": text}
-    }
+    
+    if is_bulk and template_name:
+        components = []
+        if template_vars:
+            parameters = [{"type": "text", "text": str(v)} for v in template_vars]
+            components = [{"type": "body", "parameters": parameters}]
+            
+        payload = {
+            "messaging_product": "whatsapp",
+            "to": clean_phone,
+            "type": "template",
+            "template": {
+                "name": template_name,
+                "language": {"code": "en"},
+                "components": components
+            }
+        }
+    else:
+        payload = {
+            "messaging_product": "whatsapp",
+            "to": clean_phone,
+            "type": "text",
+            "text": {"body": text}
+        }
     
     resp = requests.post(url, headers=headers, json=payload)
     

@@ -228,7 +228,14 @@ def bulk_onboard(request):
             msg += "Questions? Reply *HELP*. To stop: *STOP*"
             
             # 5. Send message
-            resp = send_whatsapp_message(phone, msg, is_bulk=True)
+            template_vars = [name if name else "there", current, preferred]
+            resp = send_whatsapp_message(
+                phone, 
+                msg, 
+                is_bulk=True,
+                template_name='onboard',
+                template_vars=template_vars
+            )
             
             return {
                 'phone': phone,
