@@ -140,6 +140,17 @@ TOOLS = [
                 "required": ["reason"]
             }
         }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "handle_opt_out",
+            "description": "Unsubscribes the user from all WhatsApp communications and marks them as opted out.",
+            "parameters": {
+                "type": "object",
+                "properties": {}
+            }
+        }
     }
 ]
 
@@ -416,7 +427,10 @@ def handle_request_human_support(profile, reason):
     
     send_whatsapp_message(admin_phone, admin_msg)
     
-    return "The administrator has been notified. They will contact you shortly via WhatsApp if necessary."
+def handle_opt_out(state_obj):
+    state_obj.is_opted_out = True
+    state_obj.save()
+    return "You have been successfully unsubscribed. You will no longer receive match notifications or onboarding messages from SwapMate. To re-subscribe, simply send any message to this number."
 
 # --- MAIN LOGIC ---
 
@@ -459,6 +473,7 @@ MATCHING:
 - MINIMALISM: Keep responses short and to the point. **DO NOT use asterisks (*) for bold or italic emphasis in text.** Only use asterisks for masking phone numbers as required. Keep text clean and plain.
 - TRIANGLE SWAPS: Use the `get_matches` tool and follow its destination logic exactly.
 - SUPPORT: If the user explicitly asks for a human, admin, customer support, or is clearly frustrated and needs 'special help', call the `request_human_support` tool immediately.
+- UNSUBSCRIBE/STOP: If the user says 'STOP', 'UNSUBSCRIBE', or 'QUIT', call the `handle_opt_out` tool immediately and confirm that they have been unsubscribed.
 
 PRE-PARSED INFO:
 - If a 'PRE-PARSED INFO' section is provided below, it means the SwapMate team already found some details about the user.
@@ -495,7 +510,15 @@ def process_whatsapp_message(phone_number, message_text, whatsapp_name=""):
     profile = user.profile
     state_obj, _ = WhatsAppState.objects.get_or_create(phone_number=phone_number)
     
-    # 2. Prepare Context for AI
+    # 2. Check Opt-out Status
+    if state_obj.is_opted_out:
+        # If they send "START" or something similar, maybe we re-subscribe them?
+        # For now, let's just re-subscribe them on ANY message as per the handle_opt_out message promise
+        state_obj.is_opted_out = False
+        state_obj.save()
+        # Continue to process normally
+    
+    # 3. Prepare Context for AI
     pre_parsed = state_obj.context_data.get('pre_parsed', {})
     completion = profile.get_completion_stats()
     
@@ -565,6 +588,8 @@ def process_whatsapp_message(phone_number, message_text, whatsapp_name=""):
                         tool_result = handle_create_meeting_chat(profile, phone_number, **args)
                     elif func_name == "request_human_support":
                         tool_result = handle_request_human_support(profile, **args)
+                    elif func_name == "handle_opt_out":
+                        tool_result = handle_opt_out(state_obj)
                 except Exception as te:
                     tool_result = f"Error executing tool: {str(te)}"
                 
@@ -607,10 +632,11 @@ def parse_bulk_onboarding_data(text):
     
     RULES:
     1. Extract 'phone_number': Format as 254XXXXXXXXX (must be 12 digits, no plus sign).
-    2. Extract 'current_location': String describing where they are now.
-    3. Extract 'preferred_location': String describing where they want to go.
-    4. Extract 'subjects': A string list of teaching subjects mentioned.
-    5. Extract 'raw_text': The original line for reference.
+    2. Extract 'name': The teacher's name if mentioned (e.g. "Jane Doe").
+    3. Extract 'current_location': String describing where they are now.
+    4. Extract 'preferred_location': String describing where they want to go.
+    5. Extract 'subjects': A string list of teaching subjects mentioned.
+    6. Extract 'raw_text': The original line for reference.
     
     Data to parse:
     {text}

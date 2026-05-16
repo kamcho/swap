@@ -85,6 +85,7 @@ class WhatsAppInteraction(models.Model):
 class WhatsAppState(models.Model):
     phone_number = models.CharField(max_length=20, unique=True)
     state = models.CharField(max_length=50, default='START') # START, ONBOARDING, IDLE
+    is_opted_out = models.BooleanField(default=False)
     context_data = models.JSONField(default=dict) # To store temporary registration data
     updated_at = models.DateTimeField(auto_now=True)
 

@@ -185,8 +185,18 @@ def bulk_onboard(request):
             if not phone:
                 return None
             
-            # 1. Prepare context
+            from .models import WhatsAppState, WhatsAppInteraction
+            
+            # 1. Skip if opted out
             state, _ = WhatsAppState.objects.get_or_create(phone_number=phone)
+            if state.is_opted_out:
+                return {'phone': phone, 'status': 'Skipped (Opted Out)', 'entry': entry}
+            
+            # 2. Skip if already contacted/onboarded
+            if WhatsAppInteraction.objects.filter(phone_number=phone).exists():
+                return {'phone': phone, 'status': 'Skipped (Already Contacted)', 'entry': entry}
+            
+            # 3. Prepare context
             state.context_data['pre_parsed'] = {
                 'current_location': entry.get('current_location'),
                 'preferred_location': entry.get('preferred_location'),
@@ -194,14 +204,17 @@ def bulk_onboard(request):
             }
             state.save()
             
-            # 2. Craft message
+            # 4. Craft message
+            name = entry.get('name', '').strip()
+            salutation = f"Hi {name}" if name else "Hi there"
             current = entry.get('current_location', 'your current station')
             preferred = entry.get('preferred_location', 'a new location')
-            msg = f"Hello! 👋 SwapMate AI noticed you are looking for a swap from *{current}* to *{preferred}*.\n\n"
-            msg += "We have many other teachers on our platform looking for similar swaps! I'd love to help you find a match.\n\n"
-            msg += "Ready to find your match? (Reply with *START*)"
             
-            # 3. Send message
+            msg = f"{salutation} — this is SwapMate. You recently expressed interest in finding a teaching position swap from *{current}* → *{preferred}*.\n\n"
+            msg += "We're onboarding teachers now to build match lists. Reply *START* to continue.\n\n"
+            msg += "Questions? Reply *HELP*. To stop: *STOP*"
+            
+            # 5. Send message
             resp = send_whatsapp_message(phone, msg)
             
             return {
