@@ -1,5 +1,6 @@
 import json
 import requests
+from concurrent.futures import ThreadPoolExecutor
 from django.shortcuts import render
 from django.http import JsonResponse, HttpResponse
 from django.views.decorators.csrf import csrf_exempt
@@ -179,14 +180,13 @@ def bulk_onboard(request):
         parsed_entries = parse_bulk_onboarding_data(raw_data)
         print(f"DEBUG: Parsed {len(parsed_entries)} entries from AI: {parsed_entries}")
         
-        for entry in parsed_entries:
+        def process_entry(entry):
             phone = str(entry.get('phone_number', ''))
             if not phone:
-                print(f"DEBUG: Skipping entry with no phone: {entry}")
-                continue
+                return None
             
-            # 1. Prepare context for the bot to "remember"
-            state, created = WhatsAppState.objects.get_or_create(phone_number=phone)
+            # 1. Prepare context
+            state, _ = WhatsAppState.objects.get_or_create(phone_number=phone)
             state.context_data['pre_parsed'] = {
                 'current_location': entry.get('current_location'),
                 'preferred_location': entry.get('preferred_location'),
@@ -194,25 +194,28 @@ def bulk_onboard(request):
             }
             state.save()
             
-            # 2. Craft initiation message
+            # 2. Craft message
             current = entry.get('current_location', 'your current station')
             preferred = entry.get('preferred_location', 'a new location')
             msg = f"Hello! 👋 SwapMate AI noticed you are looking for a swap from *{current}* to *{preferred}*.\n\n"
-            msg += "We have many other teachers on our platform looking for similar swaps! I'd love to help you find a match. I will ask you a few quick questions about your specific school and subjects to find the best partners for you.\n\n"
+            msg += "We have many other teachers on our platform looking for similar swaps! I'd love to help you find a match.\n\n"
             msg += "Ready to find your match? (Reply with *START*)"
             
             # 3. Send message
-            print(f"DEBUG: Sending WhatsApp message to {phone}...")
             resp = send_whatsapp_message(phone, msg)
-            print(f"DEBUG: Meta API Response for {phone}: {resp.status_code} - {resp.text}")
             
-            results.append({
+            return {
                 'phone': phone,
                 'status': 'Success' if resp.status_code < 300 else f'Failed ({resp.status_code})',
                 'entry': entry,
                 'debug_info': resp.text if resp.status_code >= 300 else ""
-            })
-            
+            }
+
+        # Process in parallel (max 10 threads to avoid hitting Meta rate limits too hard)
+        with ThreadPoolExecutor(max_workers=10) as executor:
+            task_results = list(executor.map(process_entry, parsed_entries))
+            results = [r for r in task_results if r is not None]
+
     return render(request, 'messenger/bulk_onboard.html', {'results': results})
 
 @login_required
