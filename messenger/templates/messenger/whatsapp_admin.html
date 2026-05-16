@@ -53,20 +53,37 @@
             <div class="wa-chat-bg"></div>
             <div class="wa-message-list">
                 {% for msg in messages %}
-                <div class="wa-msg-row user">
-                    <div class="wa-bubble user">
-                        {{ msg.user_message }}
-                        <span class="wa-msg-time">{{ msg.created_at|date:"H:i" }}</span>
+                    {% if msg.user_message != "[Staff Reply]" %}
+                    <div class="wa-msg-row user">
+                        <div class="wa-bubble user">
+                            {{ msg.user_message }}
+                            <span class="wa-msg-time">{{ msg.created_at|date:"H:i" }}</span>
+                        </div>
                     </div>
-                </div>
-                <div class="wa-msg-row bot">
-                    <div class="wa-bubble bot">
-                        {{ msg.ai_response }}
-                        <span class="wa-msg-time">{{ msg.created_at|date:"H:i" }}</span>
+                    {% endif %}
+                    
+                    <div class="wa-msg-row bot">
+                        <div class="wa-bubble bot">
+                            {{ msg.ai_response }}
+                            <span class="wa-msg-time">{{ msg.created_at|date:"H:i" }}</span>
+                        </div>
                     </div>
-                </div>
                 {% endfor %}
             </div>
+        </div>
+
+        <div class="wa-input-area">
+            <form method="POST" style="display: flex; gap: 1rem; width: 100%;">
+                {% csrf_token %}
+                <div class="wa-input-box">
+                    <i class="far fa-smile"></i>
+                    <input type="text" name="reply_text" placeholder="Type a message" required autocomplete="off">
+                    <i class="fas fa-paperclip"></i>
+                </div>
+                <button type="submit" class="wa-send-btn">
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+            </form>
         </div>
         {% else %}
         <div class="wa-no-selection">
@@ -81,6 +98,12 @@
 </div>
 
 <style>
+    .wa-input-area { padding: 0.5rem 1rem; background: #202c33; display: flex; align-items: center; gap: 1rem; }
+    .wa-input-box { flex: 1; background: #2a3942; border-radius: 8px; padding: 0.5rem 1rem; display: flex; align-items: center; gap: 1rem; }
+    .wa-input-box i { color: #8696a0; font-size: 1.25rem; cursor: pointer; }
+    .wa-input-box input { flex: 1; background: none; border: none; color: #d1d7db; outline: none; padding: 0.25rem 0; font-size: 0.95rem; }
+    .wa-send-btn { background: none; border: none; color: #8696a0; font-size: 1.25rem; cursor: pointer; transition: 0.3s; }
+    .wa-send-btn:hover { color: #e9edef; }
     .wa-admin-layout { 
         display: flex; 
         height: calc(100vh - 150px); 

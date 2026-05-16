@@ -272,6 +272,23 @@ def whatsapp_admin(request):
         
     from django.db.models import Max
     from .models import WhatsAppInteraction
+    from .utils import send_whatsapp_message
+    
+    selected_phone = request.GET.get('phone')
+    
+    if request.method == 'POST' and selected_phone:
+        reply_text = request.POST.get('reply_text')
+        if reply_text:
+            # 1. Send via WhatsApp API
+            send_whatsapp_message(selected_phone, reply_text)
+            
+            # 2. Log as a manual interaction
+            WhatsAppInteraction.objects.create(
+                phone_number=selected_phone,
+                user_message="[Staff Reply]",
+                ai_response=reply_text
+            )
+            return redirect(f"{request.path}?phone={selected_phone}")
     
     # Get all unique contacts, sorted by latest activity
     contacts_raw = WhatsAppInteraction.objects.values('phone_number').annotate(
@@ -287,10 +304,9 @@ def whatsapp_admin(request):
         contacts.append({
             'phone': c['phone_number'],
             'latest': c['latest_activity'],
-            'preview': last_msg.user_message[:30] + "..." if last_msg and last_msg.user_message else "No message"
+            'preview': last_msg.ai_response[:30] + "..." if last_msg and last_msg.ai_response else "No message"
         })
     
-    selected_phone = request.GET.get('phone')
     messages = []
     if selected_phone:
         messages = WhatsAppInteraction.objects.filter(
@@ -299,8 +315,8 @@ def whatsapp_admin(request):
         
     context = {
         'contacts': contacts,
-        'selected_phone': selected_phone,
-        'messages': messages
+        'messages': messages,
+        'selected_phone': selected_phone
     }
     return render(request, 'messenger/whatsapp_admin.html', context)
 
