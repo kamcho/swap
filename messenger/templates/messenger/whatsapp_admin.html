@@ -19,13 +19,16 @@
         <div class="wa-contact-list">
             {% for contact in contacts %}
             <a href="?phone={{ contact.phone }}" class="wa-contact-item {% if selected_phone == contact.phone %}active{% endif %}">
-                <div class="wa-avatar">
-                    <i class="fab fa-whatsapp"></i>
+                <div class="wa-completion-circle" style="background: conic-gradient(var(--primary) {{ contact.completion }}%, #374045 0);">
+                    <span>{{ contact.completion }}%</span>
                 </div>
                 <div class="wa-contact-info">
                     <div class="wa-contact-top">
-                        <span class="wa-phone">{{ contact.phone }}</span>
+                        <span class="wa-name">{{ contact.name }}</span>
                         <span class="wa-time">{{ contact.latest|date:"H:i" }}</span>
+                    </div>
+                    <div class="wa-phone-row">
+                        <span class="wa-phone">{{ contact.phone }}</span>
                     </div>
                     <p class="wa-preview">{{ contact.preview }}</p>
                 </div>
@@ -127,9 +130,26 @@
     .wa-contact-item.active { background: #2a3942; }
     
     .wa-avatar { width: 45px; height: 45px; background: #6a7175; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 1.25rem; }
+    
+    .wa-completion-circle {
+        width: 45px; height: 45px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+        position: relative; flex-shrink: 0;
+    }
+    .wa-completion-circle::after {
+        content: ''; position: absolute; width: 35px; height: 35px; background: #111b21; border-radius: 50%;
+    }
+    .wa-contact-item.active .wa-completion-circle::after { background: #2a3942; }
+    .wa-contact-item:hover .wa-completion-circle::after { background: #202c33; }
+
+    .wa-completion-circle span {
+        position: relative; z-index: 1; font-size: 0.65rem; font-weight: 700; color: #e9edef;
+    }
+
     .wa-contact-info { flex: 1; overflow: hidden; }
-    .wa-contact-top { display: flex; justify-content: space-between; margin-bottom: 0.25rem; }
-    .wa-phone { color: #e9edef; font-weight: 600; }
+    .wa-contact-top { display: flex; justify-content: space-between; margin-bottom: 0.15rem; }
+    .wa-name { color: #e9edef; font-weight: 600; font-size: 0.95rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .wa-phone-row { margin-bottom: 0.25rem; }
+    .wa-phone { color: #8696a0; font-size: 0.8rem; font-weight: 500; }
     .wa-time { color: #8696a0; font-size: 0.75rem; }
     .wa-preview { color: #8696a0; font-size: 0.85rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 

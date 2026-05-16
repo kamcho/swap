@@ -296,13 +296,29 @@ def whatsapp_admin(request):
     ).order_by('-latest_activity')
     
     contacts = []
+    from accounts.models import User
     for c in contacts_raw:
+        phone = c['phone_number']
         last_msg = WhatsAppInteraction.objects.filter(
-            phone_number=c['phone_number']
+            phone_number=phone
         ).order_by('-created_at').first()
         
+        # Try to find associated user for completion score
+        clean_phone = phone.replace("+", "").replace(" ", "")
+        last_9 = clean_phone[-9:]
+        user = User.objects.filter(Q(phone_number__contains=last_9)).first()
+        
+        name = "Unknown Teacher"
+        completion = 0
+        if user:
+            name = f"{user.first_name} {user.last_name}".strip() or "No Name Set"
+            if hasattr(user, 'profile'):
+                completion = user.profile.get_completion_stats()['percentage']
+        
         contacts.append({
-            'phone': c['phone_number'],
+            'phone': phone,
+            'name': name,
+            'completion': completion,
             'latest': c['latest_activity'],
             'preview': last_msg.ai_response[:30] + "..." if last_msg and last_msg.ai_response else "No message"
         })
