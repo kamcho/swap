@@ -39,6 +39,13 @@ def whatsapp_webhook(request):
                 if 'contacts' in value:
                     whatsapp_name = value['contacts'][0].get('profile', {}).get('name', '')
                 
+                # Update WhatsAppState with profile name
+                from .models import WhatsAppState
+                state_obj, _ = WhatsAppState.objects.get_or_create(phone_number=phone_number)
+                if whatsapp_name and not state_obj.whatsapp_name:
+                    state_obj.whatsapp_name = whatsapp_name
+                    state_obj.save()
+
                 # 1. Mark as Read & Show Typing Indicator
                 mark_message_as_read(message_id)
                 
@@ -285,6 +292,7 @@ def whatsapp_admin(request):
     from .utils import send_whatsapp_message
     
     selected_phone = request.GET.get('phone')
+    search_query = request.GET.get('q', '').strip()
     
     if request.method == 'POST' and selected_phone:
         reply_text = request.POST.get('reply_text')
@@ -311,9 +319,14 @@ def whatsapp_admin(request):
             return redirect(f"{request.path}?phone={selected_phone}")
     
     # Get all unique contacts, sorted by latest activity
-    contacts_raw = WhatsAppInteraction.objects.values('phone_number').annotate(
+    contacts_query = WhatsAppInteraction.objects.values('phone_number').annotate(
         latest_activity=Max('created_at')
-    ).order_by('-latest_activity')
+    )
+    
+    if search_query:
+        contacts_query = contacts_query.filter(phone_number__icontains=search_query)
+        
+    contacts_raw = contacts_query.order_by('-latest_activity')
     
     contacts = []
     from accounts.models import User
@@ -337,9 +350,11 @@ def whatsapp_admin(request):
         name = "Unknown Teacher"
         completion = 0
         if user:
-            name = f"{user.first_name} {user.last_name}".strip() or "No Name Set"
+            name = f"{user.first_name} {user.last_name}".strip() or state.whatsapp_name or "No Name Set"
             if hasattr(user, 'profile'):
                 completion = user.profile.get_completion_stats()['percentage']
+        elif state.whatsapp_name:
+            name = f"{state.whatsapp_name} (Unregistered)"
         
         contacts.append({
             'phone': phone,
@@ -360,7 +375,9 @@ def whatsapp_admin(request):
     context = {
         'contacts': contacts,
         'messages': messages,
-        'selected_phone': selected_phone
+        'selected_phone': selected_phone,
+        'search_query': search_query,
+        'total_chats': len(contacts)
     }
     return render(request, 'messenger/whatsapp_admin.html', context)
 
@@ -373,9 +390,16 @@ def bulk_campaign_admin(request):
     from .models import WhatsAppMessageLog
     
     # Get all unique contacts from bulk messages, sorted by latest activity
-    contacts_raw = WhatsAppMessageLog.objects.filter(is_bulk=True).values('phone_number').annotate(
+    search_query = request.GET.get('q', '').strip()
+    
+    contacts_query = WhatsAppMessageLog.objects.filter(is_bulk=True).values('phone_number').annotate(
         latest_activity=Max('created_at')
-    ).order_by('-latest_activity')
+    )
+    
+    if search_query:
+        contacts_query = contacts_query.filter(phone_number__icontains=search_query)
+        
+    contacts_raw = contacts_query.order_by('-latest_activity')
     
     contacts = []
     for c in contacts_raw:
@@ -402,7 +426,9 @@ def bulk_campaign_admin(request):
     context = {
         'contacts': contacts,
         'selected_phone': selected_phone,
-        'messages': messages
+        'messages': messages,
+        'search_query': search_query,
+        'total_chats': len(contacts)
     }
     
     return render(request, 'messenger/bulk_campaign_admin.html', context)

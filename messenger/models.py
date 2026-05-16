@@ -98,6 +98,7 @@ class WhatsAppState(models.Model):
     is_opted_out = models.BooleanField(default=False)
     expects_reply = models.BooleanField(default=False)
     nudge_count = models.IntegerField(default=0)
+    whatsapp_name = models.CharField(max_length=255, null=True, blank=True)
     context_data = models.JSONField(default=dict) # To store temporary registration data
     updated_at = models.DateTimeField(auto_now=True)
 

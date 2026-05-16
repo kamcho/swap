@@ -8,13 +8,13 @@
     <aside class="wa-sidebar">
         <div class="wa-sidebar-header">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                <h3 style="margin:0;">Chats</h3>
+                <h3 style="margin:0;">Chats ({{ total_chats }})</h3>
                 <a href="{% url 'accounts:staff_dashboard' %}" style="color: var(--primary); font-size: 0.8rem; font-weight: 700; text-decoration: none;">&larr; Dashboard</a>
             </div>
-            <div class="wa-search-bar">
+            <form action="." method="GET" class="wa-search-bar">
                 <i class="fas fa-search"></i>
-                <input type="text" placeholder="Search contacts...">
-            </div>
+                <input type="text" name="q" placeholder="Search contacts..." value="{{ search_query }}">
+            </form>
         </div>
         <div class="wa-contact-list">
             {% for contact in contacts %}
