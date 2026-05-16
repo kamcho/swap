@@ -47,6 +47,15 @@ def whatsapp_webhook(request):
                 
                 # 3. Send reply back
                 send_whatsapp_message(phone_number, reply_text)
+                
+            elif 'statuses' in value:
+                # Handle read receipts / delivery statuses
+                status_obj = value['statuses'][0]
+                msg_id = status_obj.get('id')
+                status = status_obj.get('status') # sent, delivered, read, failed
+                if msg_id and status:
+                    from .models import WhatsAppMessageLog
+                    WhatsAppMessageLog.objects.filter(message_id=msg_id).update(status=status)
             
         except (KeyError, IndexError):
             pass
@@ -172,6 +181,7 @@ def bulk_onboard(request):
         return redirect('accounts:dashboard')
         
     results = []
+    stats = {}
     if request.method == 'POST':
         raw_data = request.POST.get('bulk_data', '')
         from .utils import parse_bulk_onboarding_data, send_whatsapp_message
@@ -218,7 +228,7 @@ def bulk_onboard(request):
             msg += "Questions? Reply *HELP*. To stop: *STOP*"
             
             # 5. Send message
-            resp = send_whatsapp_message(phone, msg)
+            resp = send_whatsapp_message(phone, msg, is_bulk=True)
             
             return {
                 'phone': phone,
@@ -232,7 +242,17 @@ def bulk_onboard(request):
             task_results = list(executor.map(process_entry, parsed_entries))
             results = [r for r in task_results if r is not None]
 
-    return render(request, 'messenger/bulk_onboard.html', {'results': results})
+        # Compute stats
+        stats = {
+            'total_parsed': len(parsed_entries),
+            'total_processed': len(results),
+            'success': sum(1 for r in results if r['status'] == 'Success'),
+            'skipped_opted_out': sum(1 for r in results if 'Opted Out' in r['status']),
+            'skipped_existing': sum(1 for r in results if 'Already Contacted' in r['status']),
+            'failed': sum(1 for r in results if r['status'].startswith('Failed')),
+        }
+
+    return render(request, 'messenger/bulk_onboard.html', {'results': results, 'stats': stats})
 
 @login_required
 def whatsapp_admin(request):
@@ -272,3 +292,46 @@ def whatsapp_admin(request):
         'messages': messages
     }
     return render(request, 'messenger/whatsapp_admin.html', context)
+
+@login_required
+def bulk_campaign_admin(request):
+    if not request.user.is_staff:
+        return redirect('accounts:dashboard')
+        
+    from django.db.models import Max
+    from .models import WhatsAppMessageLog
+    
+    # Get all unique contacts from bulk messages, sorted by latest activity
+    contacts_raw = WhatsAppMessageLog.objects.filter(is_bulk=True).values('phone_number').annotate(
+        latest_activity=Max('created_at')
+    ).order_by('-latest_activity')
+    
+    contacts = []
+    for c in contacts_raw:
+        last_msg = WhatsAppMessageLog.objects.filter(
+            phone_number=c['phone_number'],
+            is_bulk=True
+        ).order_by('-created_at').first()
+        
+        contacts.append({
+            'phone': c['phone_number'],
+            'latest': c['latest_activity'],
+            'preview': last_msg.message_text[:30] + "..." if last_msg and last_msg.message_text else "No message",
+            'status': last_msg.status if last_msg else 'unknown'
+        })
+    
+    selected_phone = request.GET.get('phone')
+    messages = []
+    if selected_phone:
+        messages = WhatsAppMessageLog.objects.filter(
+            phone_number=selected_phone,
+            is_bulk=True
+        ).order_by('created_at')
+        
+    context = {
+        'contacts': contacts,
+        'selected_phone': selected_phone,
+        'messages': messages
+    }
+    
+    return render(request, 'messenger/bulk_campaign_admin.html', context)

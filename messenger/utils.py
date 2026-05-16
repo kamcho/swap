@@ -9,8 +9,8 @@ from .models import WhatsAppInteraction, WhatsAppState
 
 client = openai.OpenAI(api_key=settings.OPENAI_API_KEY)
 
-def send_whatsapp_message(to_phone, text):
-    """Sends a WhatsApp message via the Meta Graph API."""
+def send_whatsapp_message(to_phone, text, is_bulk=False):
+    """Sends a WhatsApp message via the Meta Graph API and logs it."""
     # Normalize phone number (handle 07... -> 2547...)
     clean_phone = str(to_phone).strip().replace("+", "").replace(" ", "")
     if clean_phone.startswith('0') and len(clean_phone) == 10:
@@ -24,7 +24,33 @@ def send_whatsapp_message(to_phone, text):
         "type": "text",
         "text": {"body": text}
     }
-    return requests.post(url, headers=headers, json=payload)
+    
+    resp = requests.post(url, headers=headers, json=payload)
+    
+    # Log the message
+    try:
+        from .models import WhatsAppMessageLog
+        message_id = None
+        status = 'sent'
+        if resp.status_code < 300:
+            data = resp.json()
+            if 'messages' in data and data['messages']:
+                message_id = data['messages'][0].get('id')
+        else:
+            status = 'failed'
+            
+        WhatsAppMessageLog.objects.create(
+            phone_number=clean_phone,
+            message_id=message_id,
+            message_text=text,
+            direction='OUT',
+            status=status,
+            is_bulk=is_bulk
+        )
+    except Exception as e:
+        print(f"Error logging WhatsApp message: {e}")
+        
+    return resp
 
 # --- TOOLS DEFINITIONS ---
 

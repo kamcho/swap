@@ -10,69 +10,167 @@
             <div>
                 <h1>Mass Onboarding Tool</h1>
                 <p>Paste unstructured teacher swap data below. Our AI will parse details and initiate WhatsApp conversations.</p>
+                <a href="{% url 'messenger:bulk_campaign_admin' %}" class="btn-secondary" style="display: inline-flex; align-items: center; gap: 0.5rem; margin-top: 1rem; padding: 0.5rem 1rem; background: rgba(197,31,61,0.1); color: var(--primary); text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 0.9rem;">
+                    <i class="fas fa-satellite-dish"></i> View Live Campaign Monitor & Read Receipts
+                </a>
             </div>
         </div>
 
-        <form method="POST" class="bulk-form">
+        <form method="POST" class="bulk-form" id="onboard-form">
             {% csrf_token %}
             <div class="input-wrap">
                 <label for="bulk_data">Paste Unstructured Data (Numbers, Locations, Subjects):</label>
-                <textarea name="bulk_data" id="bulk_data" placeholder="1. Kiambu to Nakuru 0785...
-2. Kitui to Kibwezi 0728...
-3. Kisw/Geo Naivasha to Nakuru 0781..."></textarea>
+                <textarea name="bulk_data" id="bulk_data" placeholder="1. Jane Doe Kiambu to Nakuru 0785...
+2. John Kitui to Kibwezi 0728...
+3. Mary Kisw/Geo Naivasha to Nakuru 0781..."></textarea>
             </div>
-            <button type="submit" class="btn-primary" id="submit-btn" onclick="showLoading()">
+            <button type="submit" class="btn-primary" id="submit-btn">
                 <i class="fas fa-paper-plane" id="btn-icon"></i> 
                 <span id="btn-text">Start Mass Onboarding</span>
             </button>
         </form>
 
-        <script>
-            function showLoading() {
-                const btn = document.getElementById('submit-btn');
-                const icon = document.getElementById('btn-icon');
-                const text = document.getElementById('btn-text');
-                
-                btn.classList.add('loading');
-                icon.className = 'fas fa-spinner fa-spin';
-                text.innerText = 'Processing with AI...';
-                // Note: The form will submit normally after this
-            }
-        </script>
+        <!-- Processing Overlay -->
+        <div class="processing-overlay" id="processing-overlay" style="display: none;">
+            <div class="processing-card">
+                <div class="spinner-ring"></div>
+                <h3>Processing with AI...</h3>
+                <p>Parsing data and sending WhatsApp messages. This may take a few minutes for large lists.</p>
+                <div class="processing-steps">
+                    <div class="step active" id="step-parse">
+                        <i class="fas fa-brain"></i>
+                        <span>Parsing data with AI</span>
+                    </div>
+                    <div class="step" id="step-send">
+                        <i class="fab fa-whatsapp"></i>
+                        <span>Sending WhatsApp messages</span>
+                    </div>
+                    <div class="step" id="step-done">
+                        <i class="fas fa-check-circle"></i>
+                        <span>Complete</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {% if stats %}
+        <!-- Stats Dashboard -->
+        <div class="stats-dashboard" id="stats-dashboard">
+            <h2><i class="fas fa-chart-bar"></i> Onboarding Results</h2>
+            
+            <div class="stats-grid">
+                <div class="stat-card stat-total">
+                    <div class="stat-icon"><i class="fas fa-database"></i></div>
+                    <div class="stat-info">
+                        <span class="stat-number" data-target="{{ stats.total_parsed }}">0</span>
+                        <span class="stat-label">Total Parsed</span>
+                    </div>
+                </div>
+                <div class="stat-card stat-success">
+                    <div class="stat-icon"><i class="fas fa-check-circle"></i></div>
+                    <div class="stat-info">
+                        <span class="stat-number" data-target="{{ stats.success }}">0</span>
+                        <span class="stat-label">Messages Sent</span>
+                    </div>
+                </div>
+                <div class="stat-card stat-skipped">
+                    <div class="stat-icon"><i class="fas fa-forward"></i></div>
+                    <div class="stat-info">
+                        <span class="stat-number" data-target="{{ stats.skipped_existing }}">0</span>
+                        <span class="stat-label">Already Contacted</span>
+                    </div>
+                </div>
+                <div class="stat-card stat-optout">
+                    <div class="stat-icon"><i class="fas fa-ban"></i></div>
+                    <div class="stat-info">
+                        <span class="stat-number" data-target="{{ stats.skipped_opted_out }}">0</span>
+                        <span class="stat-label">Opted Out</span>
+                    </div>
+                </div>
+                <div class="stat-card stat-failed">
+                    <div class="stat-icon"><i class="fas fa-exclamation-triangle"></i></div>
+                    <div class="stat-info">
+                        <span class="stat-number" data-target="{{ stats.failed }}">0</span>
+                        <span class="stat-label">Failed</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Progress Bar -->
+            {% if stats.total_parsed > 0 %}
+            <div class="progress-section">
+                <div class="progress-bar-container">
+                    <div class="progress-segment progress-success" style="width: {% widthratio stats.success stats.total_parsed 100 %}%"></div>
+                    <div class="progress-segment progress-skip" style="width: {% widthratio stats.skipped_existing stats.total_parsed 100 %}%"></div>
+                    <div class="progress-segment progress-optout" style="width: {% widthratio stats.skipped_opted_out stats.total_parsed 100 %}%"></div>
+                    <div class="progress-segment progress-fail" style="width: {% widthratio stats.failed stats.total_parsed 100 %}%"></div>
+                </div>
+                <div class="progress-legend">
+                    <span class="legend-item"><span class="legend-dot dot-success"></span> Sent</span>
+                    <span class="legend-item"><span class="legend-dot dot-skip"></span> Existing</span>
+                    <span class="legend-item"><span class="legend-dot dot-optout"></span> Opted Out</span>
+                    <span class="legend-item"><span class="legend-dot dot-fail"></span> Failed</span>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
 
         {% if results %}
         <div class="results-section">
-            <h2>Process Results</h2>
+            <div class="results-header">
+                <h2>Detailed Results</h2>
+                <div class="filter-tabs">
+                    <button class="filter-btn active" data-filter="all">All ({{ results|length }})</button>
+                    <button class="filter-btn" data-filter="Success">Sent</button>
+                    <button class="filter-btn" data-filter="Skipped">Skipped</button>
+                    <button class="filter-btn" data-filter="Failed">Failed</button>
+                </div>
+            </div>
             <div class="results-table-wrap">
                 <table class="results-table">
                     <thead>
                         <tr>
+                            <th>#</th>
                             <th>Phone</th>
+                            <th>Name</th>
                             <th>Status</th>
-                            <th>Extracted Info</th>
+                            <th>Route</th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody id="results-body">
                         {% for res in results %}
-                        <tr>
+                        <tr class="result-row" data-status="{{ res.status }}">
+                            <td class="row-num">{{ forloop.counter }}</td>
                             <td class="phone-cell">
                                 <i class="fab fa-whatsapp"></i>
                                 {{ res.phone }}
                             </td>
+                            <td class="name-cell">{{ res.entry.name|default:"—" }}</td>
                             <td>
-                                <span class="status-badge {% if res.status == 'Success' %}success{% else %}failed{% endif %}">
+                                <span class="status-badge 
+                                    {% if res.status == 'Success' %}success
+                                    {% elif 'Skipped' in res.status %}skipped
+                                    {% else %}failed{% endif %}">
+                                    {% if res.status == 'Success' %}
+                                        <i class="fas fa-check"></i>
+                                    {% elif 'Opted Out' in res.status %}
+                                        <i class="fas fa-ban"></i>
+                                    {% elif 'Already' in res.status %}
+                                        <i class="fas fa-forward"></i>
+                                    {% else %}
+                                        <i class="fas fa-times"></i>
+                                    {% endif %}
                                     {{ res.status }}
                                 </span>
                                 {% if res.debug_info %}
-                                    <div style="font-size: 0.7rem; color: #ef4444; margin-top: 0.5rem; max-width: 200px; overflow-wrap: break-word;">
-                                        {{ res.debug_info }}
-                                    </div>
+                                    <div class="debug-info">{{ res.debug_info }}</div>
                                 {% endif %}
                             </td>
                             <td class="info-cell">
-                                <strong>From:</strong> {{ res.entry.current_location }} <br>
-                                <strong>To:</strong> {{ res.entry.preferred_location }} <br>
-                                <strong>Subjects:</strong> {{ res.entry.subjects|join:", " }}
+                                <span class="route-badge">
+                                    {{ res.entry.current_location|default:"?" }} → {{ res.entry.preferred_location|default:"?" }}
+                                </span>
                             </td>
                         </tr>
                         {% endfor %}
@@ -83,6 +181,66 @@
         {% endif %}
     </div>
 </div>
+
+<script>
+    // Show processing overlay on submit
+    document.getElementById('onboard-form').addEventListener('submit', function() {
+        const overlay = document.getElementById('processing-overlay');
+        const btn = document.getElementById('submit-btn');
+        const icon = document.getElementById('btn-icon');
+        const text = document.getElementById('btn-text');
+        
+        overlay.style.display = 'flex';
+        btn.classList.add('loading');
+        btn.disabled = true;
+        icon.className = 'fas fa-spinner fa-spin';
+        text.innerText = 'Processing...';
+
+        // Simulate step progression
+        setTimeout(() => {
+            document.getElementById('step-parse').classList.add('done');
+            document.getElementById('step-send').classList.add('active');
+        }, 3000);
+    });
+
+    // Animated counter for stat numbers
+    document.addEventListener('DOMContentLoaded', function() {
+        const counters = document.querySelectorAll('.stat-number');
+        counters.forEach(counter => {
+            const target = parseInt(counter.getAttribute('data-target')) || 0;
+            const duration = 1200;
+            const step = Math.max(1, Math.ceil(target / (duration / 30)));
+            let current = 0;
+            
+            const timer = setInterval(() => {
+                current += step;
+                if (current >= target) {
+                    current = target;
+                    clearInterval(timer);
+                }
+                counter.textContent = current;
+            }, 30);
+        });
+    });
+
+    // Filter tabs
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+            
+            const filter = this.getAttribute('data-filter');
+            document.querySelectorAll('.result-row').forEach(row => {
+                const status = row.getAttribute('data-status');
+                if (filter === 'all') {
+                    row.style.display = '';
+                } else {
+                    row.style.display = status.includes(filter) ? '' : 'none';
+                }
+            });
+        });
+    });
+</script>
 
 <style>
     .bulk-onboard-container { padding: 4rem 2rem; max-width: 1100px; margin: 0 auto; }
@@ -101,7 +259,7 @@
     .card-header h1 { font-size: 2.5rem; font-weight: 800; margin-bottom: 0.5rem; }
     .card-header p { color: var(--text-muted); font-size: 1.1rem; }
     
-    .bulk-form { display: flex; flex-direction: column; gap: 2rem; margin-bottom: 4rem; }
+    .bulk-form { display: flex; flex-direction: column; gap: 2rem; margin-bottom: 3rem; }
     .input-wrap label { display: block; font-size: 0.9rem; font-weight: 700; color: var(--text-muted); margin-bottom: 1rem; text-transform: uppercase; letter-spacing: 1px; }
     .input-wrap textarea { 
         width: 100%; 
@@ -126,27 +284,167 @@
         align-items: center; 
         gap: 1rem; 
     }
+    .btn-primary.loading { opacity: 0.7; pointer-events: none; }
 
-    .results-section h2 { margin-bottom: 2rem; font-size: 1.8rem; font-weight: 800; }
+    /* Processing Overlay */
+    .processing-overlay {
+        position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+        background: rgba(0,0,0,0.6); backdrop-filter: blur(8px);
+        display: flex; align-items: center; justify-content: center;
+        z-index: 9999;
+    }
+    .processing-card {
+        background: white; border-radius: 28px; padding: 3rem;
+        text-align: center; max-width: 440px; width: 90%;
+        box-shadow: 0 40px 80px rgba(0,0,0,0.3);
+        animation: slideUp 0.4s ease;
+    }
+    @keyframes slideUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+    
+    .spinner-ring {
+        width: 56px; height: 56px; border: 4px solid #e5e7eb;
+        border-top-color: var(--primary); border-radius: 50%;
+        animation: spin 0.8s linear infinite; margin: 0 auto 1.5rem;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    
+    .processing-card h3 { font-size: 1.4rem; font-weight: 800; margin-bottom: 0.5rem; }
+    .processing-card p { color: var(--text-muted); font-size: 0.95rem; margin-bottom: 2rem; }
+    
+    .processing-steps { display: flex; flex-direction: column; gap: 1rem; text-align: left; }
+    .processing-steps .step {
+        display: flex; align-items: center; gap: 1rem; padding: 0.75rem 1rem;
+        border-radius: 12px; color: #9ca3af; transition: 0.3s;
+    }
+    .processing-steps .step i { width: 20px; text-align: center; }
+    .processing-steps .step.active { color: var(--primary); background: rgba(197,31,61,0.06); font-weight: 600; }
+    .processing-steps .step.done { color: #22c55e; }
+    .processing-steps .step.done i::before { content: "\f058"; } /* checkmark */
+
+    /* Stats Dashboard */
+    .stats-dashboard {
+        margin-bottom: 3rem; padding: 2.5rem;
+        background: linear-gradient(135deg, rgba(197,31,61,0.03), rgba(197,31,61,0.08));
+        border-radius: 24px; border: 1px solid rgba(197,31,61,0.1);
+        animation: fadeIn 0.6s ease;
+    }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+    
+    .stats-dashboard h2 { font-size: 1.6rem; font-weight: 800; margin-bottom: 2rem; display: flex; align-items: center; gap: 0.75rem; }
+    .stats-dashboard h2 i { color: var(--primary); }
+    
+    .stats-grid {
+        display: grid; grid-template-columns: repeat(5, 1fr); gap: 1rem;
+        margin-bottom: 2rem;
+    }
+    .stat-card {
+        background: white; border-radius: 18px; padding: 1.5rem;
+        display: flex; align-items: center; gap: 1rem;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.04);
+        border: 1px solid rgba(0,0,0,0.06);
+        transition: transform 0.2s;
+    }
+    .stat-card:hover { transform: translateY(-3px); }
+    
+    .stat-icon {
+        width: 48px; height: 48px; border-radius: 14px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 1.2rem; flex-shrink: 0;
+    }
+    .stat-total .stat-icon { background: rgba(99,102,241,0.1); color: #6366f1; }
+    .stat-success .stat-icon { background: rgba(34,197,94,0.1); color: #22c55e; }
+    .stat-skipped .stat-icon { background: rgba(234,179,8,0.1); color: #eab308; }
+    .stat-optout .stat-icon { background: rgba(156,163,175,0.1); color: #6b7280; }
+    .stat-failed .stat-icon { background: rgba(239,68,68,0.1); color: #ef4444; }
+    
+    .stat-info { display: flex; flex-direction: column; }
+    .stat-number { font-size: 1.8rem; font-weight: 800; line-height: 1; color: var(--text-dark); }
+    .stat-label { font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; margin-top: 0.25rem; }
+
+    /* Progress Bar */
+    .progress-section { margin-top: 0.5rem; }
+    .progress-bar-container {
+        height: 12px; background: #e5e7eb; border-radius: 50px;
+        overflow: hidden; display: flex;
+    }
+    .progress-segment { height: 100%; transition: width 1s ease; }
+    .progress-success { background: #22c55e; }
+    .progress-skip { background: #eab308; }
+    .progress-optout { background: #9ca3af; }
+    .progress-fail { background: #ef4444; }
+    
+    .progress-legend {
+        display: flex; gap: 1.5rem; margin-top: 0.75rem;
+        justify-content: center; flex-wrap: wrap;
+    }
+    .legend-item { display: flex; align-items: center; gap: 0.4rem; font-size: 0.8rem; color: var(--text-muted); font-weight: 600; }
+    .legend-dot { width: 10px; height: 10px; border-radius: 50%; }
+    .dot-success { background: #22c55e; }
+    .dot-skip { background: #eab308; }
+    .dot-optout { background: #9ca3af; }
+    .dot-fail { background: #ef4444; }
+
+    /* Results Section */
+    .results-section h2 { margin-bottom: 0; font-size: 1.6rem; font-weight: 800; }
+    
+    .results-header {
+        display: flex; justify-content: space-between; align-items: center;
+        margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;
+    }
+    .filter-tabs { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+    .filter-btn {
+        padding: 0.5rem 1.25rem; border-radius: 50px; border: 1px solid var(--border);
+        background: transparent; color: var(--text-muted); font-weight: 600;
+        font-size: 0.85rem; cursor: pointer; transition: 0.2s; font-family: inherit;
+    }
+    .filter-btn:hover { border-color: var(--primary); color: var(--primary); }
+    .filter-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
+    
     .results-table-wrap { overflow-x: auto; border-radius: 20px; border: 1px solid var(--glass-border); }
-    .results-table { width: 100%; border-collapse: collapse; background: rgba(0,0,0,0.1); }
-    .results-table th, .results-table td { padding: 1.5rem; text-align: left; border-bottom: 1px solid var(--glass-border); }
-    .results-table th { background: rgba(255,255,255,0.05); color: var(--text-muted); font-weight: 700; text-transform: uppercase; font-size: 0.8rem; }
+    .results-table { width: 100%; border-collapse: collapse; background: rgba(255,255,255,0.8); }
+    .results-table th, .results-table td { padding: 1.25rem 1.5rem; text-align: left; border-bottom: 1px solid rgba(0,0,0,0.06); }
+    .results-table th { background: rgba(0,0,0,0.02); color: var(--text-muted); font-weight: 700; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.5px; }
     
-    .phone-cell { font-weight: 700; color: var(--primary); display: flex; align-items: center; gap: 0.75rem; }
-    .phone-cell i { color: #25D366; }
+    .result-row { transition: background 0.2s; }
+    .result-row:hover { background: rgba(197,31,61,0.02); }
     
-    .status-badge { padding: 0.5rem 1rem; border-radius: 50px; font-size: 0.8rem; font-weight: 700; text-transform: uppercase; }
-    .status-badge.success { background: rgba(37, 211, 102, 0.1); color: #25D366; border: 1px solid rgba(37, 211, 102, 0.2); }
-    .status-badge.failed { background: rgba(239, 68, 68, 0.1); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.2); }
+    .row-num { color: var(--text-muted); font-weight: 700; font-size: 0.85rem; }
     
-    .info-cell { font-size: 0.95rem; color: var(--text); line-height: 1.6; }
-    .info-cell strong { color: var(--text-muted); font-size: 0.8rem; text-transform: uppercase; margin-right: 0.5rem; }
+    .phone-cell { font-weight: 700; color: var(--text-dark); white-space: nowrap; }
+    .phone-cell i { color: #25D366; margin-right: 0.5rem; }
+    
+    .name-cell { color: var(--text); font-weight: 500; }
+    
+    .status-badge {
+        padding: 0.4rem 0.9rem; border-radius: 50px; font-size: 0.78rem;
+        font-weight: 700; text-transform: uppercase; display: inline-flex;
+        align-items: center; gap: 0.4rem; white-space: nowrap;
+    }
+    .status-badge.success { background: rgba(34,197,94,0.1); color: #16a34a; border: 1px solid rgba(34,197,94,0.2); }
+    .status-badge.skipped { background: rgba(234,179,8,0.1); color: #ca8a04; border: 1px solid rgba(234,179,8,0.2); }
+    .status-badge.failed { background: rgba(239,68,68,0.1); color: #ef4444; border: 1px solid rgba(239,68,68,0.2); }
+    
+    .debug-info { font-size: 0.7rem; color: #ef4444; margin-top: 0.5rem; max-width: 220px; overflow-wrap: break-word; }
+    
+    .route-badge {
+        display: inline-block; padding: 0.35rem 0.8rem; background: rgba(99,102,241,0.06);
+        border: 1px solid rgba(99,102,241,0.12); border-radius: 8px;
+        font-size: 0.85rem; color: #4f46e5; font-weight: 500; white-space: nowrap;
+    }
 
+    @media (max-width: 1000px) {
+        .stats-grid { grid-template-columns: repeat(3, 1fr); }
+    }
     @media (max-width: 800px) {
         .admin-card { padding: 2rem; }
         .card-header { flex-direction: column; text-align: center; }
         .btn-primary { width: 100%; justify-content: center; }
+        .stats-grid { grid-template-columns: repeat(2, 1fr); }
+        .results-header { flex-direction: column; align-items: flex-start; }
+        .stat-number { font-size: 1.4rem; }
+    }
+    @media (max-width: 500px) {
+        .stats-grid { grid-template-columns: 1fr; }
     }
 </style>
 {% endblock %}

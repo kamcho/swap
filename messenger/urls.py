@@ -13,4 +13,5 @@ urlpatterns = [
     path('report/<int:user_id>/', views.report_user, name='report_user'),
     path('bulk-onboard/', views.bulk_onboard, name='bulk_onboard'),
     path('whatsapp-admin/', views.whatsapp_admin, name='whatsapp_admin'),
+    path('bulk-campaign/', views.bulk_campaign_admin, name='bulk_campaign_admin'),
 ]

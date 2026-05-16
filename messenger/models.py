@@ -91,3 +91,29 @@ class WhatsAppState(models.Model):
 
     def __str__(self):
         return f"State of {self.phone_number}: {self.state}"
+
+class WhatsAppMessageLog(models.Model):
+    DIRECTION_CHOICES = (
+        ('IN', 'Incoming'),
+        ('OUT', 'Outgoing'),
+    )
+    STATUS_CHOICES = (
+        ('sent', 'Sent'),
+        ('delivered', 'Delivered'),
+        ('read', 'Read'),
+        ('failed', 'Failed'),
+    )
+    phone_number = models.CharField(max_length=20)
+    message_id = models.CharField(max_length=255, unique=True, null=True, blank=True)
+    message_text = models.TextField()
+    direction = models.CharField(max_length=10, choices=DIRECTION_CHOICES)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='sent')
+    is_bulk = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.direction} msg to/from {self.phone_number} - {self.status}"
+    
+    class Meta:
+        ordering = ['-created_at']
