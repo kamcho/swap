@@ -50,6 +50,7 @@ INSTALLED_APPS = [
     'core',
     'locations',
     'django.contrib.sites',
+    'django.contrib.sitemaps',
     'allauth',
     'allauth.account',
     'allauth.socialaccount',

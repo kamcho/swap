@@ -3,7 +3,7 @@
 {% block title %}Mass Onboarding Campaign - SwapMate AI{% endblock %}
 
 {% block content %}
-<div class="wa-admin-layout">
+<div class="wa-admin-layout {% if selected_phone %}has-selected-phone{% endif %}">
     <!-- Sidebar Contacts -->
     <aside class="wa-sidebar">
         <div class="wa-sidebar-header">
@@ -43,6 +43,9 @@
     <main class="wa-chat-area">
         {% if selected_phone %}
         <div class="wa-chat-header">
+            <a href="?" class="wa-back-btn">
+                <i class="fas fa-arrow-left"></i>
+            </a>
             <div class="wa-avatar">
                 <i class="fab fa-whatsapp"></i>
             </div>
@@ -160,6 +163,47 @@
     ::-webkit-scrollbar { width: 6px; }
     ::-webkit-scrollbar-thumb { background: #374045; border-radius: 10px; }
     ::-webkit-scrollbar-track { background: transparent; }
+
+    .wa-back-btn {
+        display: none;
+        color: #8696a0;
+        font-size: 1.2rem;
+        margin-right: 0.75rem;
+        text-decoration: none;
+        align-items: center;
+        justify-content: center;
+    }
+    .wa-back-btn:hover {
+        color: #e9edef;
+    }
+
+    /* Mobile Responsive Styles */
+    @media (max-width: 1024px) {
+        .wa-admin-layout {
+            height: calc(100vh - 100px);
+        }
+        
+        /* When a chat is active */
+        .wa-admin-layout.has-selected-phone .wa-sidebar {
+            display: none !important;
+        }
+        .wa-admin-layout.has-selected-phone .wa-chat-area {
+            display: flex !important;
+            width: 100% !important;
+        }
+        .wa-admin-layout.has-selected-phone .wa-back-btn {
+            display: flex !important;
+        }
+        
+        /* When no chat is active */
+        .wa-admin-layout:not(.has-selected-phone) .wa-sidebar {
+            width: 100% !important;
+            display: flex !important;
+        }
+        .wa-admin-layout:not(.has-selected-phone) .wa-chat-area {
+            display: none !important;
+        }
+    }
 </style>
 
 <script>

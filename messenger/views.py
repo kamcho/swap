@@ -254,7 +254,7 @@ def bulk_onboard(request):
                 phone, 
                 msg, 
                 is_bulk=True,
-                template_name='swapmate_onboard_v1',
+                template_name='swap_v2',
                 template_vars=template_vars
             )
             

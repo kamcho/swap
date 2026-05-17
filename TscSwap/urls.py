@@ -16,6 +16,14 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
+from django.contrib.sitemaps.views import sitemap
+from core.sitemaps import StaticViewSitemap, HomeSitemap
+from django.http import HttpResponse
+
+sitemaps = {
+    'static': StaticViewSitemap,
+    'home': HomeSitemap,
+}
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -24,4 +32,6 @@ urlpatterns = [
     path('auth/', include('allauth.urls')),
     path('locations/', include('locations.urls')),
     path('messenger/', include('messenger.urls')),
+    path('sitemap.xml', sitemap, {'sitemaps': sitemaps}, name='django.contrib.sitemaps.views.sitemap'),
+    path('robots.txt', lambda r: HttpResponse("User-agent: *\nDisallow: /admin/\nDisallow: /auth/\nSitemap: https://tscswap.com/sitemap.xml", content_type="text/plain")),
 ]
